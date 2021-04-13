@@ -118,6 +118,31 @@ public class AllowAllSystemAccessControl
     }
 
     @Override
+    public void checkCanShowCatalogs(SystemSecurityContext context)
+    {
+    }
+
+    @Override
+    public void checkCanCreateCatalog(SystemSecurityContext context, String catalogName)
+    {
+    }
+
+    @Override
+    public void checkCanDropCatalog(SystemSecurityContext context, String catalogName)
+    {
+    }
+
+    @Override
+    public void checkCanUpdateCatalog(SystemSecurityContext context, String catalogName)
+    {
+    }
+
+    @Override
+    public void checkCanAccessNodeInfo(SystemSecurityContext context)
+    {
+    }
+
+    @Override
     public void checkCanCreateSchema(SystemSecurityContext context, CatalogSchemaName schema)
     {
     }

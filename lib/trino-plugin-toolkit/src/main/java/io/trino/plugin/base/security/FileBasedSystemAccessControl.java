@@ -430,6 +430,38 @@ public class FileBasedSystemAccessControl
     }
 
     @Override
+    public void checkCanShowCatalogs(SystemSecurityContext context)
+    {
+        if (!canAccessCatalog(context, "", READ_ONLY)) {
+            denyCatalogAccess();
+        }
+    }
+
+    @Override
+    public void checkCanCreateCatalog(SystemSecurityContext context, String catalogName)
+    {
+        if (!canAccessCatalog(context, catalogName, ALL)) {
+            denyCatalogAccess(catalogName);
+        }
+    }
+
+    @Override
+    public void checkCanDropCatalog(SystemSecurityContext context, String catalogName)
+    {
+        if (!canAccessCatalog(context, catalogName, ALL)) {
+            denyCatalogAccess(catalogName);
+        }
+    }
+
+    @Override
+    public void checkCanUpdateCatalog(SystemSecurityContext context, String catalogName)
+    {
+        if (!canAccessCatalog(context, catalogName, ALL)) {
+            denyCatalogAccess(catalogName);
+        }
+    }
+
+    @Override
     public void checkCanCreateSchema(SystemSecurityContext context, CatalogSchemaName schema)
     {
         if (!isSchemaOwner(context, schema)) {

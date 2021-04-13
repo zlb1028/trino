@@ -85,6 +85,9 @@ public final class DiscoveryNodeManager
     private SetMultimap<CatalogName, InternalNode> activeNodesByCatalogName;
 
     @GuardedBy("this")
+    private SetMultimap<CatalogName, InternalNode> allNodesByCatalogName;
+
+    @GuardedBy("this")
     private AllNodes allNodes;
 
     @GuardedBy("this")
@@ -196,6 +199,20 @@ public final class DiscoveryNodeManager
         refreshNodesInternal();
     }
 
+    private void putConnectorIdsToMap(ImmutableSetMultimap.Builder<CatalogName, InternalNode> mapBuilder, String connectorIdProperty, InternalNode node)
+    {
+        String totalConnectorIds = connectorIdProperty;
+        if (totalConnectorIds != null) {
+            totalConnectorIds = totalConnectorIds.toLowerCase(ENGLISH);
+            for (String connectorId : CONNECTOR_ID_SPLITTER.split(totalConnectorIds)) {
+                mapBuilder.put(new CatalogName(connectorId), node);
+            }
+        }
+
+        // always add system connector
+        mapBuilder.put(new CatalogName(GlobalSystemConnector.NAME), node);
+    }
+
     private synchronized void refreshNodesInternal()
     {
         // This is a deny-list.
@@ -208,6 +225,7 @@ public final class DiscoveryNodeManager
         ImmutableSet.Builder<InternalNode> shuttingDownNodesBuilder = ImmutableSet.builder();
         ImmutableSet.Builder<InternalNode> coordinatorsBuilder = ImmutableSet.builder();
         ImmutableSetMultimap.Builder<CatalogName, InternalNode> byConnectorIdBuilder = ImmutableSetMultimap.builder();
+        ImmutableSetMultimap.Builder<CatalogName, InternalNode> byAllConnectorIdBuilder = ImmutableSetMultimap.builder();
 
         for (ServiceDescriptor service : services) {
             URI uri = getHttpUri(service, httpsRequired);
@@ -225,16 +243,14 @@ public final class DiscoveryNodeManager
                         }
 
                         // record available active nodes organized by connector id
-                        String connectorIds = service.getProperties().get("connectorIds");
-                        if (connectorIds != null) {
-                            connectorIds = connectorIds.toLowerCase(ENGLISH);
-                            for (String connectorId : CONNECTOR_ID_SPLITTER.split(connectorIds)) {
-                                byConnectorIdBuilder.put(new CatalogName(connectorId), node);
-                            }
-                        }
+                        putConnectorIdsToMap(byConnectorIdBuilder,
+                                service.getProperties().get("connectorIds"),
+                                node);
 
-                        // always add system connector
-                        byConnectorIdBuilder.put(new CatalogName(GlobalSystemConnector.NAME), node);
+                        // record available all nodes organized by connector id
+                        putConnectorIdsToMap(byAllConnectorIdBuilder,
+                                service.getProperties().get("allConnectorIds"),
+                                node);
                         break;
                     case INACTIVE:
                         inactiveNodesBuilder.add(node);
@@ -258,6 +274,7 @@ public final class DiscoveryNodeManager
 
         // nodes by connector id changes anytime a node adds or removes a connector (note: this is not part of the listener system)
         activeNodesByCatalogName = byConnectorIdBuilder.build();
+        allNodesByCatalogName = byAllConnectorIdBuilder.build();
 
         AllNodes allNodes = new AllNodes(activeNodesBuilder.build(), inactiveNodesBuilder.build(), shuttingDownNodesBuilder.build(), coordinatorsBuilder.build());
         // only update if all nodes actually changed (note: this does not include the connectors registered with the nodes)
@@ -338,6 +355,12 @@ public final class DiscoveryNodeManager
     {
         // activeNodesByCatalogName is immutable
         return activeNodesByCatalogName.get(catalogName);
+    }
+
+    @Override
+    public synchronized Set<InternalNode> getAllConnectorNodes(CatalogName catalogName)
+    {
+        return allNodesByCatalogName.get(catalogName);
     }
 
     @Override

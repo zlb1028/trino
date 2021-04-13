@@ -108,6 +108,11 @@ public class AccessDeniedException
         throw new AccessDeniedException(format("Cannot kill query%s", formatExtraInfo(extraInfo)));
     }
 
+    public static void denyCatalogAccess()
+    {
+        denyCatalogAccess(null);
+    }
+
     public static void denyCatalogAccess(String catalogName)
     {
         denyCatalogAccess(catalogName, null);
@@ -524,5 +529,30 @@ public class AccessDeniedException
             return "";
         }
         return ": " + extraInfo;
+    }
+
+    public static void denyDropCatalog(String catalogName)
+    {
+        throw new AccessDeniedException(format("Cannot drop catalog %s", catalogName));
+    }
+
+    public static void denyCreateCatalog(String catalogName)
+    {
+        throw new AccessDeniedException(format("Cannot create catalog %s", catalogName));
+    }
+
+    public static void denyUpdateCatalog(String catalogName)
+    {
+        throw new AccessDeniedException(format("Cannot update catalog %s", catalogName));
+    }
+
+    public static void denyAccessNodeInfo()
+    {
+        denyAccessNodeInfo(null);
+    }
+
+    public static void denyAccessNodeInfo(String extraInfo)
+    {
+        throw new AccessDeniedException(format("Cannot access node information", formatExtraInfo(extraInfo)));
     }
 }

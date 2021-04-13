@@ -24,6 +24,8 @@ public interface InternalNodeManager
 
     Set<InternalNode> getActiveConnectorNodes(CatalogName catalogName);
 
+    Set<InternalNode> getAllConnectorNodes(CatalogName catalogName);
+
     InternalNode getCurrentNode();
 
     Set<InternalNode> getCoordinators();

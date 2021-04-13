@@ -54,6 +54,11 @@ public class CatalogAccessControlRule
         this.catalogRegex = requireNonNull(catalogRegex, "catalogRegex is null");
     }
 
+    public Optional<AccessMode> match(String user, Set<String> groups, Optional<String> catalog)
+    {
+        return match(user, groups, catalog.orElse(""));
+    }
+
     public Optional<AccessMode> match(String user, Set<String> groups, String catalog)
     {
         if (userRegex.map(regex -> regex.matcher(user).matches()).orElse(true) &&

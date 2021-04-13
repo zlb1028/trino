@@ -76,6 +76,21 @@ public class AllowAllAccessControl
     }
 
     @Override
+    public void checkCanCreateCatalog(Identity identity, String catalogName)
+    {
+    }
+
+    @Override
+    public void checkCanDropCatalog(Identity identity, String catalogName)
+    {
+    }
+
+    @Override
+    public void checkCanUpdateCatalog(Identity identity, String catalogName)
+    {
+    }
+
+    @Override
     public void checkCanCreateSchema(SecurityContext context, CatalogSchemaName schemaName)
     {
     }

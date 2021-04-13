@@ -29,12 +29,14 @@ import java.util.Set;
 import static io.trino.spi.security.AccessDeniedException.denyAddColumn;
 import static io.trino.spi.security.AccessDeniedException.denyCommentColumn;
 import static io.trino.spi.security.AccessDeniedException.denyCommentTable;
+import static io.trino.spi.security.AccessDeniedException.denyCreateCatalog;
 import static io.trino.spi.security.AccessDeniedException.denyCreateRole;
 import static io.trino.spi.security.AccessDeniedException.denyCreateSchema;
 import static io.trino.spi.security.AccessDeniedException.denyCreateTable;
 import static io.trino.spi.security.AccessDeniedException.denyCreateView;
 import static io.trino.spi.security.AccessDeniedException.denyCreateViewWithSelect;
 import static io.trino.spi.security.AccessDeniedException.denyDeleteTable;
+import static io.trino.spi.security.AccessDeniedException.denyDropCatalog;
 import static io.trino.spi.security.AccessDeniedException.denyDropColumn;
 import static io.trino.spi.security.AccessDeniedException.denyDropRole;
 import static io.trino.spi.security.AccessDeniedException.denyDropSchema;
@@ -75,6 +77,7 @@ import static io.trino.spi.security.AccessDeniedException.denyShowRoleGrants;
 import static io.trino.spi.security.AccessDeniedException.denyShowRoles;
 import static io.trino.spi.security.AccessDeniedException.denyShowSchemas;
 import static io.trino.spi.security.AccessDeniedException.denyShowTables;
+import static io.trino.spi.security.AccessDeniedException.denyUpdateCatalog;
 import static io.trino.spi.security.AccessDeniedException.denyUpdateTableColumns;
 import static io.trino.spi.security.AccessDeniedException.denyViewQuery;
 import static io.trino.spi.security.AccessDeniedException.denyWriteSystemInformationAccess;
@@ -134,6 +137,24 @@ public class DenyAllAccessControl
     public Set<String> filterCatalogs(Identity identity, Set<String> catalogs)
     {
         return ImmutableSet.of();
+    }
+
+    @Override
+    public void checkCanCreateCatalog(Identity identity, String catalogName)
+    {
+        denyCreateCatalog(catalogName);
+    }
+
+    @Override
+    public void checkCanDropCatalog(Identity identity, String catalogName)
+    {
+        denyDropCatalog(catalogName);
+    }
+
+    @Override
+    public void checkCanUpdateCatalog(Identity identity, String catalogName)
+    {
+        denyUpdateCatalog(catalogName);
     }
 
     @Override

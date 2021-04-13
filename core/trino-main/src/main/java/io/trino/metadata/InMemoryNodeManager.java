@@ -95,6 +95,12 @@ public class InMemoryNodeManager
     }
 
     @Override
+    public Set<InternalNode> getAllConnectorNodes(CatalogName catalogName)
+    {
+        return null;
+    }
+
+    @Override
     public AllNodes getAllNodes()
     {
         return new AllNodes(ImmutableSet.<InternalNode>builder().add(localNode).addAll(remoteNodes.values()).build(), ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(localNode));
