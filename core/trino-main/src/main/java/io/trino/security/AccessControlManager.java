@@ -285,6 +285,39 @@ public class AccessControlManager
     }
 
     @Override
+    public void checkCanCreateCatalog(Identity identity, String catalogName)
+    {
+        requireNonNull(identity, "identity is null");
+        requireNonNull(catalogName, "catalogs is null");
+
+        for (SystemAccessControl systemAccessControl : getSystemAccessControls()) {
+            systemAccessControl.checkCanAccessNodeInfo(new SystemSecurityContext(identity, Optional.empty()));
+        }
+    }
+
+    @Override
+    public void checkCanDropCatalog(Identity identity, String catalogName)
+    {
+        requireNonNull(identity, "identity is null");
+        requireNonNull(catalogName, "catalogs is null");
+
+        for (SystemAccessControl systemAccessControl : getSystemAccessControls()) {
+            systemAccessControl.checkCanDropCatalog(new SystemSecurityContext(identity, Optional.empty()), catalogName);
+        }
+    }
+
+    @Override
+    public void checkCanUpdateCatalog(Identity identity, String catalogName)
+    {
+        requireNonNull(identity, "identity is null");
+        requireNonNull(catalogName, "catalogs is null");
+
+        for (SystemAccessControl systemAccessControl : getSystemAccessControls()) {
+            systemAccessControl.checkCanUpdateCatalog(new SystemSecurityContext(identity, Optional.empty()), catalogName);
+        }
+    }
+
+    @Override
     public void checkCanCreateSchema(SecurityContext securityContext, CatalogSchemaName schemaName)
     {
         requireNonNull(securityContext, "securityContext is null");

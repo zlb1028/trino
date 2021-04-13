@@ -13,17 +13,46 @@
  */
 package io.trino.server;
 
+import com.google.common.collect.ImmutableSet;
 import io.airlift.configuration.Config;
 import io.airlift.units.Duration;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 public class ServerConfig
 {
+    private static final String DELIMITER = ",";
+
     private boolean coordinator = true;
     private boolean includeExceptionInResponse = true;
     private Duration gracePeriod = new Duration(2, MINUTES);
     private boolean queryResultsCompressionEnabled = true;
+    private final Set<String> admins = new HashSet<>();
+
+    public boolean isAdmin(String user)
+    {
+        return admins.contains(user);
+    }
+
+    public Set<String> getAdmins()
+    {
+        return ImmutableSet.copyOf(admins);
+    }
+
+    @Config("openlookeng.admins")
+    public ServerConfig setAdmins(String adminsString)
+    {
+        if (adminsString == null || adminsString.length() == 0) {
+            return this;
+        }
+        String[] adminsSplit = adminsString.split(DELIMITER);
+        Arrays.stream(adminsSplit).forEach(admin -> admins.add(admin.trim()));
+        return this;
+    }
 
     public boolean isCoordinator()
     {

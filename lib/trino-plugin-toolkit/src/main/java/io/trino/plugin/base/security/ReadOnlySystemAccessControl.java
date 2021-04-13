@@ -112,6 +112,11 @@ public class ReadOnlySystemAccessControl
     }
 
     @Override
+    public void checkCanShowCatalogs(SystemSecurityContext context)
+    {
+    }
+
+    @Override
     public Set<String> filterSchemas(SystemSecurityContext context, String catalogName, Set<String> schemaNames)
     {
         return schemaNames;

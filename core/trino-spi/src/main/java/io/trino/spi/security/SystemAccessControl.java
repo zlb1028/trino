@@ -25,15 +25,18 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 
+import static io.trino.spi.security.AccessDeniedException.denyAccessNodeInfo;
 import static io.trino.spi.security.AccessDeniedException.denyAddColumn;
 import static io.trino.spi.security.AccessDeniedException.denyCatalogAccess;
 import static io.trino.spi.security.AccessDeniedException.denyCommentColumn;
 import static io.trino.spi.security.AccessDeniedException.denyCommentTable;
+import static io.trino.spi.security.AccessDeniedException.denyCreateCatalog;
 import static io.trino.spi.security.AccessDeniedException.denyCreateSchema;
 import static io.trino.spi.security.AccessDeniedException.denyCreateTable;
 import static io.trino.spi.security.AccessDeniedException.denyCreateView;
 import static io.trino.spi.security.AccessDeniedException.denyCreateViewWithSelect;
 import static io.trino.spi.security.AccessDeniedException.denyDeleteTable;
+import static io.trino.spi.security.AccessDeniedException.denyDropCatalog;
 import static io.trino.spi.security.AccessDeniedException.denyDropColumn;
 import static io.trino.spi.security.AccessDeniedException.denyDropSchema;
 import static io.trino.spi.security.AccessDeniedException.denyDropTable;
@@ -65,6 +68,7 @@ import static io.trino.spi.security.AccessDeniedException.denyShowCreateTable;
 import static io.trino.spi.security.AccessDeniedException.denyShowRoles;
 import static io.trino.spi.security.AccessDeniedException.denyShowSchemas;
 import static io.trino.spi.security.AccessDeniedException.denyShowTables;
+import static io.trino.spi.security.AccessDeniedException.denyUpdateCatalog;
 import static io.trino.spi.security.AccessDeniedException.denyUpdateTableColumns;
 import static io.trino.spi.security.AccessDeniedException.denyViewQuery;
 import static java.lang.String.format;
@@ -184,6 +188,43 @@ public interface SystemAccessControl
     default Set<String> filterCatalogs(SystemSecurityContext context, Set<String> catalogs)
     {
         return emptySet();
+    }
+
+    /**
+     * Check whether identity is can show catalogs
+     *
+     * @throws AccessDeniedException if not allowed
+     */
+    default void checkCanShowCatalogs(SystemSecurityContext context) {}
+
+    /**
+     * Check whether identity is can create a catalog
+     *
+     * @throws AccessDeniedException if not allowed
+     */
+    default void checkCanCreateCatalog(SystemSecurityContext context, String catalogName)
+    {
+        denyCreateCatalog(catalogName);
+    }
+
+    /**
+     * Check if identity is allowed to drop the specified catalog
+     *
+     * @throws AccessDeniedException if not allowed
+     */
+    default void checkCanDropCatalog(SystemSecurityContext context, String catalogName)
+    {
+        denyDropCatalog(catalogName);
+    }
+
+    /**
+     * Check if identity is allowed to update the specified catalog
+     *
+     * @throws AccessDeniedException if not allowed
+     */
+    default void checkCanUpdateCatalog(SystemSecurityContext context, String catalogName)
+    {
+        denyUpdateCatalog(catalogName);
     }
 
     /**
@@ -561,6 +602,16 @@ public interface SystemAccessControl
     default void checkCanShowRoles(SystemSecurityContext context, String catalogName)
     {
         denyShowRoles(catalogName);
+    }
+
+    /**
+     * Check if identity is allowed to access or modify node info.
+     *
+     * @throws AccessDeniedException if not allowed
+     */
+    default void checkCanAccessNodeInfo(SystemSecurityContext context)
+    {
+        denyAccessNodeInfo();
     }
 
     /**

@@ -102,6 +102,21 @@ public interface AccessControl
     Set<String> filterCatalogs(Identity identity, Set<String> catalogs);
 
     /**
+     * Check whether identity is can create a catalog
+     */
+    void checkCanCreateCatalog(Identity identity, String catalogName);
+
+    /**
+     * Check if identity is allowed to drop the specified catalog
+     */
+    void checkCanDropCatalog(Identity identity, String catalogName);
+
+    /**
+     * Check if identity is allowed to update the specified catalog
+     */
+    void checkCanUpdateCatalog(Identity identity, String catalogName);
+
+    /**
      * Check if identity is allowed to create the specified schema.
      *
      * @throws AccessDeniedException if not allowed
