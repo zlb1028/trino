@@ -16,6 +16,7 @@ package io.trino.spi;
 import io.trino.spi.block.BlockEncoding;
 import io.trino.spi.connector.ConnectorFactory;
 import io.trino.spi.eventlistener.EventListenerFactory;
+import io.trino.spi.queryeditorui.ConnectorWithProperties;
 import io.trino.spi.resourcegroups.ResourceGroupConfigurationManagerFactory;
 import io.trino.spi.security.CertificateAuthenticatorFactory;
 import io.trino.spi.security.GroupProviderFactory;
@@ -25,6 +26,7 @@ import io.trino.spi.session.SessionPropertyConfigurationManagerFactory;
 import io.trino.spi.type.ParametricType;
 import io.trino.spi.type.Type;
 
+import java.util.Optional;
 import java.util.Set;
 
 import static java.util.Collections.emptyList;
@@ -90,5 +92,10 @@ public interface Plugin
     default Iterable<SessionPropertyConfigurationManagerFactory> getSessionPropertyConfigurationManagerFactories()
     {
         return emptyList();
+    }
+
+    default Optional<ConnectorWithProperties> getConnectorWithProperties()
+    {
+        return Optional.empty();
     }
 }

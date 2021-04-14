@@ -13,23 +13,30 @@
  */
 package io.trino.spi.type;
 
-import javax.annotation.concurrent.Immutable;
-
 import java.util.Objects;
 import java.util.Optional;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
-@Immutable
-public final class TypeSignatureParameter
+public class TypeSignatureParameter
 {
     private final ParameterKind kind;
     private final Object value;
 
+    public static TypeSignatureParameter of(TypeSignature typeSignature)
+    {
+        return new TypeSignatureParameter(ParameterKind.TYPE, typeSignature);
+    }
+
     public static TypeSignatureParameter typeParameter(TypeSignature typeSignature)
     {
         return new TypeSignatureParameter(ParameterKind.TYPE, typeSignature);
+    }
+
+    public static TypeSignatureParameter of(long longLiteral)
+    {
+        return new TypeSignatureParameter(ParameterKind.LONG, longLiteral);
     }
 
     public static TypeSignatureParameter numericParameter(long longLiteral)
@@ -37,9 +44,19 @@ public final class TypeSignatureParameter
         return new TypeSignatureParameter(ParameterKind.LONG, longLiteral);
     }
 
+    public static TypeSignatureParameter of(NamedTypeSignature namedTypeSignature)
+    {
+        return new TypeSignatureParameter(ParameterKind.NAMED_TYPE, namedTypeSignature);
+    }
+
     public static TypeSignatureParameter namedTypeParameter(NamedTypeSignature namedTypeSignature)
     {
         return new TypeSignatureParameter(ParameterKind.NAMED_TYPE, namedTypeSignature);
+    }
+
+    public static TypeSignatureParameter of(String variable)
+    {
+        return new TypeSignatureParameter(ParameterKind.VARIABLE, variable);
     }
 
     public static TypeSignatureParameter namedField(String name, TypeSignature type)
@@ -67,24 +84,6 @@ public final class TypeSignatureParameter
     public String toString()
     {
         return value.toString();
-    }
-
-    public String jsonValue()
-    {
-        String prefix = "";
-        if (kind == ParameterKind.VARIABLE) {
-            prefix = "@";
-        }
-
-        String valueJson;
-        if (value instanceof TypeSignature) {
-            TypeSignature typeSignature = (TypeSignature) value;
-            valueJson = typeSignature.jsonValue();
-        }
-        else {
-            valueJson = value.toString();
-        }
-        return prefix + valueJson;
     }
 
     public ParameterKind getKind()
@@ -163,8 +162,9 @@ public final class TypeSignatureParameter
                 return false;
             case VARIABLE:
                 return true;
+            default:
+                throw new IllegalArgumentException("Unexpected parameter kind: " + kind);
         }
-        throw new IllegalArgumentException("Unexpected parameter kind: " + kind);
     }
 
     @Override
@@ -179,7 +179,7 @@ public final class TypeSignatureParameter
 
         TypeSignatureParameter other = (TypeSignatureParameter) o;
 
-        return this.kind == other.kind &&
+        return Objects.equals(this.kind, other.kind) &&
                 Objects.equals(this.value, other.value);
     }
 

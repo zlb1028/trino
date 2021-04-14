@@ -43,7 +43,7 @@ public class InternalAuthenticationManager
 {
     private static final Logger log = Logger.get(InternalAuthenticationManager.class);
 
-    private static final String TRINO_INTERNAL_BEARER = "X-Trino-Internal-Bearer";
+    public static final String TRINO_INTERNAL_BEARER = "X-Trino-Internal-Bearer";
 
     private final byte[] hmac;
     private final String nodeId;
@@ -112,7 +112,7 @@ public class InternalAuthenticationManager
                 .build();
     }
 
-    private String generateJwt()
+    public String generateJwt()
     {
         return Jwts.builder()
                 .signWith(SignatureAlgorithm.HS256, hmac)

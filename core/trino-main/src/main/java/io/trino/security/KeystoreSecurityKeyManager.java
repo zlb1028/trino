@@ -142,8 +142,7 @@ public class KeystoreSecurityKeyManager
     {
         Path keystorePath = Paths.get(config.getFileStorePath());
         char[] keyStr = null;
-        try (FileSystemClient fileSystemClient = fileSystemClientManager.getFileSystemClient(config.getShareFileSystemProfile(), Paths.get("/"));
-             InputStream inputStream = fileSystemClient.newInputStream(keystorePath)) {
+        try (FileSystemClient fileSystemClient = fileSystemClientManager.getFileSystemClient(config.getShareFileSystemProfile(), Paths.get("/")); InputStream inputStream = fileSystemClient.newInputStream(keystorePath)) {
             KeyStore keyStore = KeyStore.getInstance(PKCS12);
             keyStore.load(inputStream, config.getKeystorePassword().toCharArray());
             Key key = keyStore.getKey(catalogName, config.getKeystorePassword().toCharArray());
