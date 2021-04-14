@@ -107,14 +107,13 @@ import static io.trino.spi.type.StandardTypes.ROW;
 import static io.trino.spi.type.StandardTypes.TIME;
 import static io.trino.spi.type.StandardTypes.TIMESTAMP;
 import static io.trino.spi.type.StandardTypes.TIMESTAMP_WITH_TIME_ZONE;
-import static io.trino.spi.type.StandardTypes.TIME_WITH_TIME_ZONE;
 import static io.trino.util.Failures.toFailure;
 import static io.trino.util.MoreLists.mappedCopy;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 @ThreadSafe
-class Query
+public class Query
 {
     private static final Logger log = Logger.get(Query.class);
 
@@ -669,29 +668,30 @@ class Query
         throw new IllegalArgumentException("Unsupported data type: " + type.getClass().getName());
     }
 
-    private ClientTypeSignature toClientTypeSignature(TypeSignature signature)
+    public static ClientTypeSignature toClientTypeSignature(TypeSignature signature)
     {
-        if (!supportsParametricDateTime) {
-            if (signature.getBase().equalsIgnoreCase(TIMESTAMP)) {
-                return new ClientTypeSignature(TIMESTAMP);
-            }
-            else if (signature.getBase().equalsIgnoreCase(TIMESTAMP_WITH_TIME_ZONE)) {
-                return new ClientTypeSignature(TIMESTAMP_WITH_TIME_ZONE);
-            }
-            else if (signature.getBase().equalsIgnoreCase(TIME)) {
-                return new ClientTypeSignature(TIME);
-            }
-            else if (signature.getBase().equalsIgnoreCase(TIME_WITH_TIME_ZONE)) {
-                return new ClientTypeSignature(TIME_WITH_TIME_ZONE);
-            }
-        }
+        // todo hack this static filed problem
+//        if (!supportsParametricDateTime) {
+//            if (signature.getBase().equalsIgnoreCase(TIMESTAMP)) {
+//                return new ClientTypeSignature(TIMESTAMP);
+//            }
+//            else if (signature.getBase().equalsIgnoreCase(TIMESTAMP_WITH_TIME_ZONE)) {
+//                return new ClientTypeSignature(TIMESTAMP_WITH_TIME_ZONE);
+//            }
+//            else if (signature.getBase().equalsIgnoreCase(TIME)) {
+//                return new ClientTypeSignature(TIME);
+//            }
+//            else if (signature.getBase().equalsIgnoreCase(TIME_WITH_TIME_ZONE)) {
+//                return new ClientTypeSignature(TIME_WITH_TIME_ZONE);
+//            }
+//        }
 
         return new ClientTypeSignature(signature.getBase(), signature.getParameters().stream()
-                .map(this::toClientTypeSignatureParameter)
+                .map(Query::toClientTypeSignatureParameter)
                 .collect(toImmutableList()));
     }
 
-    private ClientTypeSignatureParameter toClientTypeSignatureParameter(TypeSignatureParameter parameter)
+    private static ClientTypeSignatureParameter toClientTypeSignatureParameter(TypeSignatureParameter parameter)
     {
         switch (parameter.getKind()) {
             case TYPE:
