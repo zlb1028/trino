@@ -24,6 +24,8 @@ import io.airlift.discovery.server.EmbeddedDiscoveryModule;
 import io.airlift.http.server.HttpServerConfig;
 import io.airlift.units.DataSize;
 import io.airlift.units.Duration;
+import io.trino.catalog.CatalogModule;
+import io.trino.catalog.DynamicCatalogConfig;
 import io.trino.client.QueryResults;
 import io.trino.cost.CostCalculator;
 import io.trino.cost.CostCalculator.EstimatedExchanges;
@@ -136,6 +138,9 @@ public class CoordinatorModule
         jaxrsBinder(binder).bind(ExecutingStatementResource.class);
         binder.bind(StatementHttpExecutionMBean.class).in(Scopes.SINGLETON);
         newExporter(binder).export(StatementHttpExecutionMBean.class).withGeneratedName();
+
+        // catalog resource
+        install(installModuleIf(DynamicCatalogConfig.class, DynamicCatalogConfig::isDynamicCatalogEnabled, new CatalogModule()));
 
         // allow large prepared statements in headers
         configBinder(binder).bindConfigDefaults(HttpServerConfig.class, config -> {

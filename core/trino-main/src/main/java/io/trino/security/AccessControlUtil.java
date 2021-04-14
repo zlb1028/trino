@@ -16,14 +16,23 @@ package io.trino.security;
 import com.google.common.collect.ImmutableSet;
 import io.trino.SessionRepresentation;
 import io.trino.server.BasicQueryInfo;
+import io.trino.server.HttpRequestSessionContext;
+import io.trino.server.ServerConfig;
 import io.trino.server.SessionContext;
+import io.trino.spi.security.GroupProvider;
 import io.trino.spi.security.Identity;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MultivaluedMap;
+
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
+import static io.trino.server.HttpRequestSessionContext.AUTHENTICATED_IDENTITY;
 
 public final class AccessControlUtil
 {
@@ -62,6 +71,31 @@ public final class AccessControlUtil
             return;
         }
         accessControl.checkCanKillQueryOwnedBy(identity, queryOwner);
+    }
+
+    public static Optional<String> getUserForFilter(AccessControl accessControl,
+                                                    ServerConfig serverConfig,
+                                                    GroupProvider groupProvider,
+                                                    HttpHeaders httpHeaders,
+                                                    HttpServletRequest servletRequest)
+    {
+        String sessionUser = AccessControlUtil.getUser(accessControl, groupProvider, httpHeaders, servletRequest);
+        Optional<String> user = Optional.of(sessionUser);
+        // if the user is admin, don't filter results by user.
+        if (serverConfig.isAdmin(sessionUser)) {
+            user = Optional.empty();
+        }
+        return user;
+    }
+
+    public static String getUser(AccessControl accessControl, GroupProvider groupProvider, HttpHeaders httpHeaders, HttpServletRequest servletRequest)
+    {
+        String remoteAddress = servletRequest.getRemoteAddr();
+        Optional<Identity> identity = Optional.ofNullable((Identity) servletRequest.getAttribute(AUTHENTICATED_IDENTITY));
+        MultivaluedMap<String, String> headers = httpHeaders.getRequestHeaders();
+        HttpRequestSessionContext sessionContext = new HttpRequestSessionContext(headers, Optional.of(""), remoteAddress, identity, groupProvider);
+        checkCanImpersonateUser(accessControl, sessionContext);
+        return sessionContext.getIdentity().getUser();
     }
 
     public static void checkCanImpersonateUser(AccessControl accessControl, SessionContext sessionContext)

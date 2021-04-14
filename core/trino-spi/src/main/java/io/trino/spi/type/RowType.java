@@ -171,7 +171,7 @@ public class RowType
 
         List<TypeSignatureParameter> parameters = fields.stream()
                 .map(field -> new NamedTypeSignature(field.getName().map(RowFieldName::new), field.getType().getTypeSignature()))
-                .map(TypeSignatureParameter::namedTypeParameter)
+                .map(TypeSignatureParameter::of)
                 .collect(Collectors.toList());
 
         return new TypeSignature(ROW, parameters);
