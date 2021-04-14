@@ -351,7 +351,7 @@ public class DynamicCatalogStore
         InternalNode currentNode = nodeManager.getCurrentNode();
         refreshConnectorNodes();
         Set<InternalNode> nodes = nodeManager.getAllConnectorNodes(new CatalogName(catalogName));
-        return (nodes.size() == 1 && nodes.contains(currentNode)); // Current node has update catalog, so we just wait other nodes has deleted catalog.
+        return (nodes.size() == 0 || nodes.size() >= 1 && nodes.contains(currentNode)); // Current node has update catalog, so we just wait other nodes has deleted catalog.
     }
 
     private void waitForAllNodeDeletedCatalog(String catalogName)
