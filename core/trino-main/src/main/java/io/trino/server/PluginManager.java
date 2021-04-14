@@ -18,6 +18,7 @@ import io.airlift.log.Logger;
 import io.trino.connector.ConnectorManager;
 import io.trino.eventlistener.EventListenerManager;
 import io.trino.execution.resourcegroups.ResourceGroupManager;
+import io.trino.filesystem.FileSystemClientManager;
 import io.trino.metadata.MetadataManager;
 import io.trino.security.AccessControlManager;
 import io.trino.security.GroupProviderManager;
@@ -28,6 +29,7 @@ import io.trino.spi.block.BlockEncoding;
 import io.trino.spi.classloader.ThreadContextClassLoader;
 import io.trino.spi.connector.ConnectorFactory;
 import io.trino.spi.eventlistener.EventListenerFactory;
+import io.trino.spi.filesystem.FileSystemClientFactory;
 import io.trino.spi.resourcegroups.ResourceGroupConfigurationManagerFactory;
 import io.trino.spi.security.CertificateAuthenticatorFactory;
 import io.trino.spi.security.GroupProviderFactory;
@@ -73,6 +75,7 @@ public class PluginManager
     private final EventListenerManager eventListenerManager;
     private final GroupProviderManager groupProviderManager;
     private final SessionPropertyDefaults sessionPropertyDefaults;
+    private final FileSystemClientManager fileSystemClientManager;
     private final AtomicBoolean pluginsLoading = new AtomicBoolean();
     private final AtomicBoolean pluginsLoaded = new AtomicBoolean();
 
@@ -87,7 +90,8 @@ public class PluginManager
             CertificateAuthenticatorManager certificateAuthenticatorManager,
             EventListenerManager eventListenerManager,
             GroupProviderManager groupProviderManager,
-            SessionPropertyDefaults sessionPropertyDefaults)
+            SessionPropertyDefaults sessionPropertyDefaults,
+            FileSystemClientManager fileSystemClientManager)
     {
         this.pluginsProvider = requireNonNull(pluginsProvider, "pluginsProvider is null");
         this.connectorManager = requireNonNull(connectorManager, "connectorManager is null");
@@ -99,6 +103,7 @@ public class PluginManager
         this.eventListenerManager = requireNonNull(eventListenerManager, "eventListenerManager is null");
         this.groupProviderManager = requireNonNull(groupProviderManager, "groupProviderManager is null");
         this.sessionPropertyDefaults = requireNonNull(sessionPropertyDefaults, "sessionPropertyDefaults is null");
+        this.fileSystemClientManager = requireNonNull(fileSystemClientManager, "fileSystemClientManager is null");
     }
 
     public void loadPlugins()
@@ -212,6 +217,11 @@ public class PluginManager
         for (GroupProviderFactory groupProviderFactory : plugin.getGroupProviderFactories()) {
             log.info("Registering group provider %s", groupProviderFactory.getName());
             groupProviderManager.addGroupProviderFactory(groupProviderFactory);
+        }
+
+        for (FileSystemClientFactory fileSystemClientFactory : plugin.getFileSystemClientFactory()) {
+            log.info("Registering file system provider %s", fileSystemClientFactory.getName());
+            fileSystemClientManager.addFileSystemClientFactories(fileSystemClientFactory);
         }
     }
 

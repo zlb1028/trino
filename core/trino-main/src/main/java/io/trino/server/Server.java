@@ -37,11 +37,14 @@ import io.airlift.log.LogJmxModule;
 import io.airlift.log.Logger;
 import io.airlift.node.NodeModule;
 import io.airlift.tracetoken.TraceTokenModule;
+import io.trino.catalog.DynamicCatalogScanner;
+import io.trino.catalog.DynamicCatalogStore;
 import io.trino.client.NodeVersion;
 import io.trino.eventlistener.EventListenerManager;
 import io.trino.eventlistener.EventListenerModule;
 import io.trino.execution.resourcegroups.ResourceGroupManager;
 import io.trino.execution.warnings.WarningCollectorModule;
+import io.trino.filesystem.FileSystemClientManager;
 import io.trino.metadata.Catalog;
 import io.trino.metadata.CatalogManager;
 import io.trino.metadata.StaticCatalogStore;
@@ -122,6 +125,9 @@ public class Server
 
             injector.getInstance(StaticCatalogStore.class).loadCatalogs();
 
+            FileSystemClientManager fileSystemClientManager = injector.getInstance(FileSystemClientManager.class);
+            fileSystemClientManager.loadFactoryConfigs();
+
             // TODO: remove this huge hack
             updateConnectorIds(injector.getInstance(Announcer.class), injector.getInstance(CatalogManager.class));
 
@@ -130,6 +136,8 @@ public class Server
             injector.getInstance(AccessControlManager.class).loadSystemAccessControl();
             injector.getInstance(optionalKey(PasswordAuthenticatorManager.class))
                     .ifPresent(PasswordAuthenticatorManager::loadPasswordAuthenticator);
+            injector.getInstance(DynamicCatalogStore.class).loadCatalogStores(fileSystemClientManager);
+            injector.getInstance(DynamicCatalogScanner.class).start();
             injector.getInstance(EventListenerManager.class).loadEventListeners();
             injector.getInstance(GroupProviderManager.class).loadConfiguredGroupProvider();
             injector.getInstance(CertificateAuthenticatorManager.class).loadCertificateAuthenticator();

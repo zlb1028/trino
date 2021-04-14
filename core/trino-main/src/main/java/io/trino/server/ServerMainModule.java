@@ -32,6 +32,7 @@ import io.trino.GroupByHashPageIndexerFactory;
 import io.trino.PagesIndexPageSorter;
 import io.trino.SystemSessionProperties;
 import io.trino.block.BlockJsonSerde;
+import io.trino.catalog.DynamicCatalogScanner;
 import io.trino.client.NodeVersion;
 import io.trino.client.ServerInfo;
 import io.trino.connector.ConnectorManager;
@@ -415,6 +416,7 @@ public class ServerMainModule
         configBinder(binder).bindConfig(ServerPluginsProviderConfig.class);
 
         binder.bind(CatalogManager.class).in(Scopes.SINGLETON);
+        binder.bind(DynamicCatalogScanner.class).in(Scopes.SINGLETON);
 
         // block encodings
         jsonBinder(binder).addSerializerBinding(Block.class).to(BlockJsonSerde.Serializer.class);

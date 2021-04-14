@@ -18,6 +18,13 @@ package io.trino.catalog;
 import com.google.inject.Binder;
 import com.google.inject.Scopes;
 import io.airlift.configuration.AbstractConfigurationAwareModule;
+import io.trino.filesystem.FileSystemClientManager;
+import io.trino.security.CipherTextDecryptUtil;
+import io.trino.security.KeystoreSecurityKeyManager;
+import io.trino.security.NoneCipherTextDecrypt;
+import io.trino.security.PasswordSecurityConfig;
+import io.trino.spi.security.CipherTextDecrypt;
+import io.trino.spi.security.SecurityKeyManager;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 
 import static io.airlift.jaxrs.JaxrsBinder.jaxrsBinder;
@@ -30,6 +37,14 @@ public class CatalogModule
     {
         jaxrsBinder(binder).bind(CatalogResource.class);
         jaxrsBinder(binder).bind(MultiPartFeature.class);
+        binder.bind(DynamicCatalogStore.class).in(Scopes.SINGLETON);
+        binder.bind(SecurityKeyManager.class)
+                .to(KeystoreSecurityKeyManager.class);
+        binder.bind(CatalogStoreUtil.class).in(Scopes.SINGLETON);
+        binder.bind(FileSystemClientManager.class).in(Scopes.SINGLETON);
+        binder.bind(CipherTextDecryptUtil.class).in(Scopes.SINGLETON);
+        binder.bind(PasswordSecurityConfig.class).in(Scopes.SINGLETON);
+        binder.bind(CipherTextDecrypt.class).to(NoneCipherTextDecrypt.class).in(Scopes.SINGLETON);
         binder.bind(DynamicCatalogService.class).in(Scopes.SINGLETON);
     }
 }

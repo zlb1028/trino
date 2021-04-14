@@ -72,11 +72,11 @@ public class DynamicCatalogStore
 
     @Inject
     public DynamicCatalogStore(ConnectorManager connectorManager,
-            DynamicCatalogConfig dynamicCatalogConfig,
-            CatalogManager catalogManager,
-            InternalNodeManager nodeManager,
-            ServiceSelectorManager selectorManager,
-            CatalogStoreUtil catalogStoreUtil)
+                               DynamicCatalogConfig dynamicCatalogConfig,
+                               CatalogManager catalogManager,
+                               InternalNodeManager nodeManager,
+                               ServiceSelectorManager selectorManager,
+                               CatalogStoreUtil catalogStoreUtil)
     {
         this.connectorManager = connectorManager;
         this.catalogManager = requireNonNull(catalogManager, "catalogManager is null");

@@ -24,6 +24,8 @@ import io.airlift.discovery.server.EmbeddedDiscoveryModule;
 import io.airlift.http.server.HttpServerConfig;
 import io.airlift.units.DataSize;
 import io.airlift.units.Duration;
+import io.trino.catalog.CatalogModule;
+import io.trino.catalog.DynamicCatalogConfig;
 import io.trino.client.QueryResults;
 import io.trino.cost.CostCalculator;
 import io.trino.cost.CostCalculator.EstimatedExchanges;
@@ -213,6 +215,9 @@ public class CoordinatorModule
 
         // Rule Stats Recorder
         binder.bind(RuleStatsRecorder.class).in(Scopes.SINGLETON);
+
+        // catalog resource
+        install(installModuleIf(DynamicCatalogConfig.class, DynamicCatalogConfig::isDynamicCatalogEnabled, new CatalogModule()));
 
         // query explainer
         binder.bind(QueryExplainer.class).in(Scopes.SINGLETON);

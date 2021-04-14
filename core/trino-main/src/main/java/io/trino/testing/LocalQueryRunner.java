@@ -74,6 +74,7 @@ import io.trino.execution.scheduler.NodeScheduler;
 import io.trino.execution.scheduler.NodeSchedulerConfig;
 import io.trino.execution.scheduler.UniformNodeSelectorFactory;
 import io.trino.execution.warnings.WarningCollector;
+import io.trino.filesystem.FileSystemClientManager;
 import io.trino.index.IndexManager;
 import io.trino.memory.MemoryManagerConfig;
 import io.trino.memory.NodeMemoryConfig;
@@ -386,7 +387,8 @@ public class LocalQueryRunner
                 new CertificateAuthenticatorManager(),
                 eventListenerManager,
                 new GroupProviderManager(),
-                new SessionPropertyDefaults(nodeInfo));
+                new SessionPropertyDefaults(nodeInfo),
+                new FileSystemClientManager());
 
         connectorManager.addConnectorFactory(globalSystemConnectorFactory, globalSystemConnectorFactory.getClass()::getClassLoader);
         connectorManager.createCatalog(GlobalSystemConnector.NAME, GlobalSystemConnector.NAME, ImmutableMap.of());
