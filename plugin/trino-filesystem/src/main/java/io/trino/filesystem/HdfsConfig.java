@@ -87,7 +87,7 @@ public class HdfsConfig
 
         String[] parts = configResources.split(",");
 
-        Configuration config = new Configuration();
+        Configuration config = new Configuration(false);
 
         // disable automatically closing the FileSystem in shutdown
         config.setBoolean(FS_AUTOMATIC_CLOSE, false);
