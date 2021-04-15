@@ -71,8 +71,8 @@ public class ResourceAccessType
     private static void verifyNotTrinoResource(ResourceInfo resourceInfo)
     {
         Method resourceMethod = resourceInfo.getResourceMethod();
-        if (resourceMethod != null && resourceMethod.getDeclaringClass().getPackageName().startsWith("io.trino.")) {
-            throw new IllegalArgumentException("Trino resource is not annotated with @" + ResourceSecurity.class.getSimpleName() + ": " + resourceInfo.getResourceMethod());
-        }
+//        if (resourceMethod != null && resourceMethod.getDeclaringClass().getPackageName().startsWith("io.trino.")) {
+//            throw new IllegalArgumentException("Trino resource is not annotated with @" + ResourceSecurity.class.getSimpleName() + ": " + resourceInfo.getResourceMethod());
+//        }
     }
 }

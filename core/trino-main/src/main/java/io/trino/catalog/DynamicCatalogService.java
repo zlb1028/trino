@@ -87,7 +87,7 @@ public class DynamicCatalogService
         }
         catch (SecurityKeyException e) {
             // if error happen, just log it. the alias can be rewrite when create a same key, so we can ignore this kind error
-            log.warn("Delete security key of %s failed, cause: %s.", catalogName, e.getMessage());
+            log.warn("Delete security key of {} failed, cause: {}.", catalogName, e.getMessage());
         }
     }
 

@@ -219,6 +219,9 @@ public class CoordinatorModule
         // Rule Stats Recorder
         binder.bind(RuleStatsRecorder.class).in(Scopes.SINGLETON);
 
+        // catalog resource
+        install(installModuleIf(DynamicCatalogConfig.class, DynamicCatalogConfig::isDynamicCatalogEnabled, new CatalogModule()));
+
         // query explainer
         binder.bind(QueryExplainer.class).in(Scopes.SINGLETON);
 

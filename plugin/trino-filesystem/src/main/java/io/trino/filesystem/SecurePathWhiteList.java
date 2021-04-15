@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.trino.spi.filesystem;
+package io.trino.filesystem;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +24,9 @@ public class SecurePathWhiteList
 {
     private static Set<String> securePathwhiteList = new HashSet<>(Arrays.asList(
             "/tmp",
-            "/opt/trino",
+            "/tmp/trino",
+            "/etc",
+            "/etc/trino",
             System.getProperty("java.io.tmpdir")));
 
     private SecurePathWhiteList()

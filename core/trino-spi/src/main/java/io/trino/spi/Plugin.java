@@ -16,6 +16,7 @@ package io.trino.spi;
 import io.trino.spi.block.BlockEncoding;
 import io.trino.spi.connector.ConnectorFactory;
 import io.trino.spi.eventlistener.EventListenerFactory;
+import io.trino.spi.filesystem.FileSystemClientFactory;
 import io.trino.spi.queryeditorui.ConnectorWithProperties;
 import io.trino.spi.resourcegroups.ResourceGroupConfigurationManagerFactory;
 import io.trino.spi.security.CertificateAuthenticatorFactory;
@@ -85,6 +86,11 @@ public interface Plugin
     }
 
     default Iterable<ResourceGroupConfigurationManagerFactory> getResourceGroupConfigurationManagerFactories()
+    {
+        return emptyList();
+    }
+
+    default Iterable<FileSystemClientFactory> getFileSystemClientFactory()
     {
         return emptyList();
     }
