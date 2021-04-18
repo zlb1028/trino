@@ -16,7 +16,14 @@ package io.trino.plugin.memory;
 import com.google.common.collect.ImmutableList;
 import io.trino.spi.Plugin;
 import io.trino.spi.connector.ConnectorFactory;
+import io.trino.spi.function.ConnectorConfig;
+import io.trino.spi.queryeditorui.ConnectorUtil;
+import io.trino.spi.queryeditorui.ConnectorWithProperties;
 
+import java.util.Arrays;
+import java.util.Optional;
+
+@ConnectorConfig(propertiesEnabled = true)
 public final class MemoryPlugin
         implements Plugin
 {
@@ -24,5 +31,13 @@ public final class MemoryPlugin
     public Iterable<ConnectorFactory> getConnectorFactories()
     {
         return ImmutableList.of(new MemoryConnectorFactory());
+    }
+
+    @Override
+    public Optional<ConnectorWithProperties> getConnectorWithProperties()
+    {
+        ConnectorConfig connectorConfig = MemoryPlugin.class.getAnnotation(ConnectorConfig.class);
+        return ConnectorUtil.assembleConnectorProperties(connectorConfig,
+                Arrays.asList(MemoryConfig.class.getDeclaredMethods()));
     }
 }

@@ -17,12 +17,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.trino.spi.Plugin;
 import io.trino.spi.connector.ConnectorFactory;
+import io.trino.spi.function.ConnectorConfig;
+import io.trino.spi.queryeditorui.ConnectorUtil;
+import io.trino.spi.queryeditorui.ConnectorWithProperties;
 import io.trino.spi.type.Type;
 
+import java.util.Arrays;
+import java.util.Optional;
 import java.util.Set;
 
 import static io.trino.plugin.mongodb.ObjectIdType.OBJECT_ID;
 
+@ConnectorConfig(propertiesEnabled = true)
 public class MongoPlugin
         implements Plugin
 {
@@ -42,5 +48,14 @@ public class MongoPlugin
     public Iterable<ConnectorFactory> getConnectorFactories()
     {
         return ImmutableList.of(new MongoConnectorFactory("mongodb"));
+    }
+
+    @Override
+    public Optional<ConnectorWithProperties> getConnectorWithProperties()
+    {
+        ConnectorConfig connectorConfig = MongoPlugin.class.getAnnotation(ConnectorConfig.class);
+        Optional<ConnectorWithProperties> connectorWithProperties = ConnectorUtil.assembleConnectorProperties(connectorConfig,
+                Arrays.asList(MongoPlugin.class.getDeclaredMethods()));
+        return connectorWithProperties;
     }
 }

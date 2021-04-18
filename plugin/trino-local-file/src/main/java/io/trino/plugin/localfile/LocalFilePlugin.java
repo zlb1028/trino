@@ -16,7 +16,14 @@ package io.trino.plugin.localfile;
 import com.google.common.collect.ImmutableList;
 import io.trino.spi.Plugin;
 import io.trino.spi.connector.ConnectorFactory;
+import io.trino.spi.function.ConnectorConfig;
+import io.trino.spi.queryeditorui.ConnectorUtil;
+import io.trino.spi.queryeditorui.ConnectorWithProperties;
 
+import java.util.Arrays;
+import java.util.Optional;
+
+@ConnectorConfig(propertiesEnabled = true)
 public class LocalFilePlugin
         implements Plugin
 {
@@ -24,5 +31,13 @@ public class LocalFilePlugin
     public Iterable<ConnectorFactory> getConnectorFactories()
     {
         return ImmutableList.of(new LocalFileConnectorFactory());
+    }
+
+    @Override
+    public Optional<ConnectorWithProperties> getConnectorWithProperties()
+    {
+        ConnectorConfig connectorConfig = LocalFilePlugin.class.getAnnotation(ConnectorConfig.class);
+        return ConnectorUtil.assembleConnectorProperties(connectorConfig,
+                Arrays.asList(LocalFileConfig.class.getDeclaredMethods()));
     }
 }

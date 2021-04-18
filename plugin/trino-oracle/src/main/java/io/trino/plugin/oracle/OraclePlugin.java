@@ -13,13 +13,31 @@
  */
 package io.trino.plugin.oracle;
 
+import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.JdbcPlugin;
+import io.trino.spi.function.ConnectorConfig;
+import io.trino.spi.queryeditorui.ConnectorUtil;
+import io.trino.spi.queryeditorui.ConnectorWithProperties;
 
+import java.util.Arrays;
+import java.util.Optional;
+
+@ConnectorConfig(propertiesEnabled = true)
 public class OraclePlugin
         extends JdbcPlugin
 {
     public OraclePlugin()
     {
         super("oracle", new OracleClientModule());
+    }
+
+    @Override
+    public Optional<ConnectorWithProperties> getConnectorWithProperties()
+    {
+        ConnectorConfig connectorConfig = OraclePlugin.class.getAnnotation(ConnectorConfig.class);
+        Optional<ConnectorWithProperties> connectorWithProperties = ConnectorUtil.assembleConnectorProperties(connectorConfig,
+                Arrays.asList(BaseJdbcConfig.class.getDeclaredMethods()));
+        ConnectorUtil.addConnUrlProperty(connectorWithProperties, "jdbc:oracle:thin:@host:port/ORCLCDB");
+        return connectorWithProperties;
     }
 }

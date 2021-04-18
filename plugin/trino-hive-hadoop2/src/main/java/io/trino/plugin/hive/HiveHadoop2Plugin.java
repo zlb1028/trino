@@ -14,9 +14,21 @@
 package io.trino.plugin.hive;
 
 import com.google.common.collect.ImmutableList;
+import io.trino.plugin.hive.metastore.thrift.StaticMetastoreConfig;
 import io.trino.spi.Plugin;
 import io.trino.spi.connector.ConnectorFactory;
+import io.trino.spi.function.ConnectorConfig;
+import io.trino.spi.queryeditorui.ConnectorUtil;
+import io.trino.spi.queryeditorui.ConnectorWithProperties;
 
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Optional;
+
+@ConnectorConfig(propertiesEnabled = true,
+        catalogConfigFilesEnabled = true,
+        globalConfigFilesEnabled = true)
 public class HiveHadoop2Plugin
         implements Plugin
 {
@@ -24,5 +36,15 @@ public class HiveHadoop2Plugin
     public Iterable<ConnectorFactory> getConnectorFactories()
     {
         return ImmutableList.of(new HiveConnectorFactory("hive-hadoop2"));
+    }
+
+    @Override
+    public Optional<ConnectorWithProperties> getConnectorWithProperties()
+    {
+        ConnectorConfig connectorConfig = HiveHadoop2Plugin.class.getAnnotation(ConnectorConfig.class);
+        ArrayList<Method> methods = new ArrayList<>();
+        methods.addAll(Arrays.asList(StaticMetastoreConfig.class.getDeclaredMethods()));
+        methods.addAll(Arrays.asList(HiveConfig.class.getDeclaredMethods()));
+        return ConnectorUtil.assembleConnectorProperties(connectorConfig, methods);
     }
 }

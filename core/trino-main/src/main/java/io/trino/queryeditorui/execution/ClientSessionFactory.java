@@ -48,7 +48,7 @@ public class ClientSessionFactory
         this.source = source;
         this.catalog = catalog;
         this.defaultSchema = defaultSchema;
-        this.timeZoneId = ZoneId.of("GMT+8:00");
+        this.timeZoneId = ZoneId.of("Asia/Shanghai");
         this.locale = Locale.getDefault();
         this.clientSessionTimeout = firstNonNull(clientSessionTimeout, succinctDuration(1, MINUTES));
     }

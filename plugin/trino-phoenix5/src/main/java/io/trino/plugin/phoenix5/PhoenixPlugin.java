@@ -16,7 +16,16 @@ package io.trino.plugin.phoenix5;
 import com.google.common.collect.ImmutableList;
 import io.trino.spi.Plugin;
 import io.trino.spi.connector.ConnectorFactory;
+import io.trino.spi.function.ConnectorConfig;
+import io.trino.spi.queryeditorui.ConnectorUtil;
+import io.trino.spi.queryeditorui.ConnectorWithProperties;
 
+import java.util.Arrays;
+import java.util.Optional;
+
+@ConnectorConfig(propertiesEnabled = true,
+        catalogConfigFilesEnabled = true,
+        globalConfigFilesEnabled = true)
 public class PhoenixPlugin
         implements Plugin
 {
@@ -24,5 +33,13 @@ public class PhoenixPlugin
     public Iterable<ConnectorFactory> getConnectorFactories()
     {
         return ImmutableList.of(new PhoenixConnectorFactory(PhoenixPlugin.class.getClassLoader()));
+    }
+
+    @Override
+    public Optional<ConnectorWithProperties> getConnectorWithProperties()
+    {
+        ConnectorConfig connectorConfig = PhoenixPlugin.class.getAnnotation(ConnectorConfig.class);
+        return ConnectorUtil.assembleConnectorProperties(connectorConfig,
+                Arrays.asList(PhoenixPlugin.class.getDeclaredMethods()));
     }
 }

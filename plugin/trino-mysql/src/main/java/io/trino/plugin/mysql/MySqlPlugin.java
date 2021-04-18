@@ -13,13 +13,31 @@
  */
 package io.trino.plugin.mysql;
 
+import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.JdbcPlugin;
+import io.trino.spi.function.ConnectorConfig;
+import io.trino.spi.queryeditorui.ConnectorUtil;
+import io.trino.spi.queryeditorui.ConnectorWithProperties;
 
+import java.util.Arrays;
+import java.util.Optional;
+
+@ConnectorConfig(propertiesEnabled = true)
 public class MySqlPlugin
         extends JdbcPlugin
 {
     public MySqlPlugin()
     {
         super("mysql", new MySqlClientModule());
+    }
+
+    @Override
+    public Optional<ConnectorWithProperties> getConnectorWithProperties()
+    {
+        ConnectorConfig connectorConfig = MySqlPlugin.class.getAnnotation(ConnectorConfig.class);
+        Optional<ConnectorWithProperties> connectorWithProperties = ConnectorUtil.assembleConnectorProperties(connectorConfig,
+                Arrays.asList(BaseJdbcConfig.class.getDeclaredMethods()));
+        ConnectorUtil.addConnUrlProperty(connectorWithProperties, "jdbc:mysql://host:port");
+        return connectorWithProperties;
     }
 }

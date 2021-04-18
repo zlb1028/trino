@@ -75,6 +75,7 @@ import io.trino.memory.TotalReservationLowMemoryKiller;
 import io.trino.memory.TotalReservationOnBlockedNodesLowMemoryKiller;
 import io.trino.metadata.CatalogManager;
 import io.trino.operator.ForScheduler;
+import io.trino.queryeditorui.QueryEditorUIModule;
 import io.trino.server.protocol.ExecutingStatementResource;
 import io.trino.server.remotetask.RemoteTaskStats;
 import io.trino.server.ui.WebUiModule;
@@ -263,6 +264,9 @@ public class CoordinatorModule
         executionPolicyBinder.addBinding("phased").to(PhasedExecutionPolicy.class);
 
         install(new QueryExecutionFactoryModule());
+
+        //hetu-ui module
+        super.install(new QueryEditorUIModule());
 
         // cleanup
         binder.bind(ExecutorCleanup.class).in(Scopes.SINGLETON);

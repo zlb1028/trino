@@ -25,6 +25,8 @@ public class SecurePathWhiteList
     private static Set<String> securePathwhiteList = new HashSet<>(Arrays.asList(
             "/tmp",
             "/opt/trino",
+            "/etc",
+            "etc",
             System.getProperty("java.io.tmpdir")));
 
     private SecurePathWhiteList()

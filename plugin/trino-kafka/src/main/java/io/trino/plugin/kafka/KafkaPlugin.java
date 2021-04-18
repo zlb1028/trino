@@ -17,9 +17,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.inject.Module;
 import io.trino.spi.Plugin;
 import io.trino.spi.connector.ConnectorFactory;
+import io.trino.spi.function.ConnectorConfig;
+import io.trino.spi.queryeditorui.ConnectorUtil;
+import io.trino.spi.queryeditorui.ConnectorWithProperties;
+
+import java.util.Arrays;
+import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
+@ConnectorConfig(propertiesEnabled = true,
+        catalogConfigFilesEnabled = true,
+        globalConfigFilesEnabled = true)
 public class KafkaPlugin
         implements Plugin
 {
@@ -45,5 +54,13 @@ public class KafkaPlugin
     public synchronized Iterable<ConnectorFactory> getConnectorFactories()
     {
         return ImmutableList.of(new KafkaConnectorFactory(extension));
+    }
+
+    @Override
+    public Optional<ConnectorWithProperties> getConnectorWithProperties()
+    {
+        ConnectorConfig connectorConfig = KafkaPlugin.class.getAnnotation(ConnectorConfig.class);
+        return ConnectorUtil.assembleConnectorProperties(connectorConfig,
+                Arrays.asList(KafkaConfig.class.getDeclaredMethods()));
     }
 }
