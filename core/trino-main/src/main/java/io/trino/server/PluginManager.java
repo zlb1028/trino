@@ -20,6 +20,7 @@ import io.trino.eventlistener.EventListenerManager;
 import io.trino.execution.resourcegroups.ResourceGroupManager;
 import io.trino.filesystem.FileSystemClientManager;
 import io.trino.metadata.MetadataManager;
+import io.trino.queryeditorui.store.connectors.ConnectorCache;
 import io.trino.security.AccessControlManager;
 import io.trino.security.GroupProviderManager;
 import io.trino.server.security.CertificateAuthenticatorManager;
@@ -175,6 +176,7 @@ public class PluginManager
         for (ConnectorFactory connectorFactory : plugin.getConnectorFactories()) {
             log.info("Registering connector %s", connectorFactory.getName());
             connectorManager.addConnectorFactory(connectorFactory, duplicatePluginClassLoaderFactory);
+            ConnectorCache.addCatalogConfig(plugin, connectorFactory.getName());
         }
 
         for (Class<?> functionClass : plugin.getFunctions()) {

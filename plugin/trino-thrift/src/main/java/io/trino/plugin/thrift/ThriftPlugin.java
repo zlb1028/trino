@@ -17,11 +17,19 @@ import com.google.common.collect.ImmutableList;
 import com.google.inject.Module;
 import io.trino.spi.Plugin;
 import io.trino.spi.connector.ConnectorFactory;
+import io.trino.spi.function.ConnectorConfig;
+import io.trino.spi.queryeditorui.ConnectorUtil;
+import io.trino.spi.queryeditorui.ConnectorWithProperties;
+
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.Objects.requireNonNull;
 
+@ConnectorConfig(propertiesEnabled = true,
+        catalogConfigFilesEnabled = true,
+        globalConfigFilesEnabled = true)
 public class ThriftPlugin
         implements Plugin
 {
@@ -44,5 +52,24 @@ public class ThriftPlugin
     public Iterable<ConnectorFactory> getConnectorFactories()
     {
         return ImmutableList.of(new ThriftConnectorFactory(name, module));
+    }
+
+    @Override
+    public Optional<ConnectorWithProperties> getConnectorWithProperties()
+    {
+        ConnectorConfig connectorConfig = ThriftPlugin.class.getAnnotation(ConnectorConfig.class);
+        Optional<ConnectorWithProperties> connectorWithProperties = ConnectorUtil.assembleConnectorProperties(connectorConfig,
+                ImmutableList.of());
+        if (connectorWithProperties.isPresent()) {
+            ConnectorWithProperties.Properties properties = new ConnectorWithProperties.Properties();
+            properties.setName("trino.thrift.client.addresses");
+            properties.setDescription("Location of Thrift servers");
+            properties.setValue("host1:port,host2:port");
+            properties.setRequired(Optional.of(true));
+            properties.setReadOnly(Optional.of(false));
+            properties.setType(Optional.of("string"));
+            connectorWithProperties.get().addProperties(properties);
+        }
+        return connectorWithProperties;
     }
 }

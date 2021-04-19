@@ -13,13 +13,31 @@
  */
 package io.trino.plugin.sqlserver;
 
+import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.JdbcPlugin;
+import io.trino.spi.function.ConnectorConfig;
+import io.trino.spi.queryeditorui.ConnectorUtil;
+import io.trino.spi.queryeditorui.ConnectorWithProperties;
 
+import java.util.Arrays;
+import java.util.Optional;
+
+@ConnectorConfig(propertiesEnabled = true)
 public class SqlServerPlugin
         extends JdbcPlugin
 {
     public SqlServerPlugin()
     {
         super("sqlserver", new SqlServerClientModule());
+    }
+
+    @Override
+    public Optional<ConnectorWithProperties> getConnectorWithProperties()
+    {
+        ConnectorConfig connectorConfig = SqlServerPlugin.class.getAnnotation(ConnectorConfig.class);
+        Optional<ConnectorWithProperties> connectorWithProperties = ConnectorUtil.assembleConnectorProperties(connectorConfig,
+                Arrays.asList(BaseJdbcConfig.class.getDeclaredMethods()));
+        ConnectorUtil.addConnUrlProperty(connectorWithProperties, "jdbc:sqlserver://[serverName[\\instanceName][:portNumber]]");
+        return connectorWithProperties;
     }
 }

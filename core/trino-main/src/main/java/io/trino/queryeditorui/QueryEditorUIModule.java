@@ -56,6 +56,8 @@ import io.trino.queryeditorui.store.queries.InMemoryQueryStore;
 import io.trino.queryeditorui.store.queries.QueryStore;
 import io.trino.server.InternalAuthenticationManager;
 import io.trino.server.InternalCommunicationConfig;
+import io.trino.server.security.PasswordAuthenticatorConfig;
+import io.trino.server.security.PasswordAuthenticatorManager;
 import io.trino.server.security.WebUIAuthenticator;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
@@ -101,6 +103,8 @@ public class QueryEditorUIModule
         jaxrsBinder(binder).bind(LoginResource.class);
         jaxrsBinder(binder).bind(UserResource.class);
 
+        binder.bind(PasswordAuthenticatorManager.class).in(Scopes.SINGLETON);
+        binder.bind(PasswordAuthenticatorConfig.class).in(Scopes.SINGLETON);
         binder.bind(SchemaService.class).in(Scopes.SINGLETON);
         binder.bind(ColumnService.class).in(Scopes.SINGLETON);
         binder.bind(PreviewTableService.class).in(Scopes.SINGLETON);
