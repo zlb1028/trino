@@ -23,6 +23,8 @@ import io.trino.queryeditorui.QueryEditorUIModule;
 import io.trino.queryeditorui.execution.QueryClient;
 import io.trino.queryeditorui.execution.QueryRunner;
 import io.trino.queryeditorui.execution.QueryRunner.QueryRunnerFactory;
+import io.trino.queryeditorui.protocol.TableInfo;
+import io.trino.queryeditorui.util.StatementResultUtil;
 import io.trino.server.protocol.Query;
 import io.trino.spi.type.TypeSignature;
 import org.joda.time.Duration;
@@ -53,6 +55,32 @@ public class ColumnService
             String tableName, String user) throws ExecutionException
     {
         return queryColumns(FQN_JOINER.join(catalogName, schemaName, tableName), user);
+    }
+
+    public void addColumn(TableInfo table, Column column, String user)
+    {
+        QueryRunner queryRunner = queryRunnerFactory.create(QueryEditorUIModule.UI_QUERY_SOURCE, user);
+        String catalogName = table.getCatalog();
+        String schemaName = table.getSchema();
+        String tableName = table.getTable();
+        String statement = String.format("ALTER TABLE %s.%s.%s ADD COLUMN %s %s",
+                table.getCatalog(), table.getSchema(), table.getSchema(), column.getName(), column.getType());
+        Boolean result = StatementResultUtil.definitionStatement(queryRunner, statement);
+        if (result == null || !result) {
+            throw new IllegalArgumentException(String.format("failed to add column [%s: %s] for table [%s.%s]",
+                    column.getName(), column.getType(), catalogName, schemaName, tableName));
+        }
+    }
+
+    public void dropColumn(String catalog, String schema, String table, String column, String user)
+    {
+        QueryRunner queryRunner = queryRunnerFactory.create(QueryEditorUIModule.UI_QUERY_SOURCE, user);
+        String statement = String.format("ALTER TABLE %s.%s.%s DROP COLUMN %s", catalog, schema, table, column);
+        Boolean result = StatementResultUtil.definitionStatement(queryRunner, statement);
+        if (result == null || !result) {
+            throw new IllegalArgumentException(String.format("failed to delete column [%s: %s] for table [%s.%s]",
+                    column, catalog, schema, table, column));
+        }
     }
 
     private List<Column> queryColumns(String fqnTableName, String user)

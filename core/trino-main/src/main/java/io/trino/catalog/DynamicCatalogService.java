@@ -29,6 +29,7 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 
@@ -264,6 +265,32 @@ public class DynamicCatalogService
             AccessControlUtil.checkCanImpersonateUser(accessControl, sessionContext);
             allowedCatalogs = accessControl.filterCatalogs(sessionContext.getIdentity(), catalogNames);
             return Response.ok(allowedCatalogs).build();
+        }
+        catch (Exception e) {
+            log.error("Filter catalogs error : %s.", e.getMessage());
+            throw badRequest(UNAUTHORIZED, "No permission");
+        }
+    }
+
+    public Response showCatalogInfo(HttpRequestSessionContext sessionContext)
+            throws IOException
+    {
+        Set<String> catalogNames = dynamicCatalogStore.listCatalogNames(SHARE);
+        Set<String> allowedCatalogs;
+        try {
+            AccessControlUtil.checkCanImpersonateUser(accessControl, sessionContext);
+            allowedCatalogs = accessControl.filterCatalogs(sessionContext.getIdentity(), catalogNames);
+            Set catalogInfos = new HashSet<CatalogInfo>();
+            allowedCatalogs
+                    .forEach(catalogName -> {
+                        try {
+                            catalogInfos.add(dynamicCatalogStore.getCatalogInformation(catalogName));
+                        }
+                        catch (IOException e) {
+                            log.info("failed to get catalogInfo for catalog [{}]: {}", catalogName, e.getMessage());
+                        }
+                    });
+            return Response.ok(catalogInfos).build();
         }
         catch (Exception e) {
             log.error("Filter catalogs error : %s.", e.getMessage());
