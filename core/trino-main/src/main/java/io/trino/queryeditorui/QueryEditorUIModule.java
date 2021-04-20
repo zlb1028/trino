@@ -32,6 +32,7 @@ import io.trino.queryeditorui.execution.QueryRunner.QueryRunnerFactory;
 import io.trino.queryeditorui.metadata.ColumnService;
 import io.trino.queryeditorui.metadata.PreviewTableService;
 import io.trino.queryeditorui.metadata.SchemaService;
+import io.trino.queryeditorui.metadata.TableService;
 import io.trino.queryeditorui.output.PersistentJobOutputFactory;
 import io.trino.queryeditorui.output.builders.OutputBuilderFactory;
 import io.trino.queryeditorui.output.persistors.CSVPersistorFactory;
@@ -39,6 +40,7 @@ import io.trino.queryeditorui.output.persistors.PersistorFactory;
 import io.trino.queryeditorui.protocol.ExecutionStatus.ExecutionError;
 import io.trino.queryeditorui.protocol.ExecutionStatus.ExecutionSuccess;
 import io.trino.queryeditorui.resources.ConnectorResource;
+import io.trino.queryeditorui.resources.DefinitionResource;
 import io.trino.queryeditorui.resources.FilesResource;
 import io.trino.queryeditorui.resources.LoginResource;
 import io.trino.queryeditorui.resources.MetadataResource;
@@ -102,10 +104,12 @@ public class QueryEditorUIModule
         jaxrsBinder(binder).bind(ConnectorResource.class);
         jaxrsBinder(binder).bind(LoginResource.class);
         jaxrsBinder(binder).bind(UserResource.class);
+        jaxrsBinder(binder).bind(DefinitionResource.class);
 
         binder.bind(PasswordAuthenticatorManager.class).in(Scopes.SINGLETON);
         binder.bind(PasswordAuthenticatorConfig.class).in(Scopes.SINGLETON);
         binder.bind(SchemaService.class).in(Scopes.SINGLETON);
+        binder.bind(TableService.class).in(Scopes.SINGLETON);
         binder.bind(ColumnService.class).in(Scopes.SINGLETON);
         binder.bind(PreviewTableService.class).in(Scopes.SINGLETON);
         binder.bind(ExecutionClient.class).in(Scopes.SINGLETON);

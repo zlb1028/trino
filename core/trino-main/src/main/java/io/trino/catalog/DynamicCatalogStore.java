@@ -481,6 +481,12 @@ public class DynamicCatalogStore
         return shareCatalogStore.getCatalogLock(catalogName);
     }
 
+    public CatalogInfo getCatalogInformation(String catalogName) throws IOException
+    {
+        CatalogInfo catalogInformation = localCatalogStore.getCatalogInformation(catalogName);
+        return catalogInformation;
+    }
+
     public enum CatalogStoreType {
         LOCAL,
         SHARE
