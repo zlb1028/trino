@@ -300,4 +300,27 @@ public class CatalogResource
 
         return response;
     }
+
+    @GET
+    @Path("/info")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response showCatalogInfo(@Context HttpHeaders httpHeaders,
+                                 @Context HttpServletRequest servletRequest)
+    {
+        Response response;
+        String remoteAddress = servletRequest.getRemoteAddr();
+        Optional<Identity> identity = Optional.ofNullable((Identity) servletRequest.getAttribute(AUTHENTICATED_IDENTITY));
+        MultivaluedMap<String, String> headers = httpHeaders.getRequestHeaders();
+        try {
+            response = service.showCatalogInfo(new HttpRequestSessionContext(headers, Optional.of(""), remoteAddress, identity, groupProvider));
+        }
+        catch (WebApplicationException ex) {
+            throw ex;
+        }
+        catch (Throwable ex) {
+            throw badRequest(BAD_REQUEST, "show catalog failed. please check your request info.");
+        }
+
+        return response;
+    }
 }

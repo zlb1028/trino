@@ -16,21 +16,16 @@ package io.trino.queryeditorui.metadata;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import io.airlift.log.Logger;
-import io.trino.client.QueryData;
-import io.trino.client.StatementClient;
 import io.trino.queryeditorui.QueryEditorUIModule;
-import io.trino.queryeditorui.execution.QueryClient;
 import io.trino.queryeditorui.execution.QueryRunner;
 import io.trino.queryeditorui.protocol.CatalogSchema;
 import io.trino.queryeditorui.protocol.Table;
-import org.joda.time.Duration;
+import io.trino.queryeditorui.util.StatementResultUtil;
 
-import javax.annotation.Nullable;
-
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -52,7 +47,7 @@ public class SchemaService
         QueryRunner queryRunner = queryRunnerFactory.create(QueryEditorUIModule.UI_QUERY_SOURCE, user);
         String statement = format("SHOW TABLES FROM %s.%s", catalogName, schemaName);
 
-        Set<String> tablesResult = queryStatement(queryRunner, statement);
+        Set<String> tablesResult = StatementResultUtil.queryStatement(queryRunner, statement);
 
         final ImmutableList.Builder<Table> builder = ImmutableList.builder();
         for (String tableName : tablesResult) {
@@ -66,7 +61,7 @@ public class SchemaService
         QueryRunner queryRunner = queryRunnerFactory.create(QueryEditorUIModule.UI_QUERY_SOURCE, user);
         String statement = format("SHOW SCHEMAS FROM %s", catalogName);
 
-        Set<String> schemasResult = queryStatement(queryRunner, statement);
+        Set<String> schemasResult = StatementResultUtil.queryStatement(queryRunner, statement);
         return new CatalogSchema(catalogName, ImmutableList.copyOf(schemasResult));
     }
 
@@ -86,34 +81,32 @@ public class SchemaService
         QueryRunner queryRunner = queryRunnerFactory.create(QueryEditorUIModule.UI_QUERY_SOURCE, user);
         String statement = "SHOW CATALOGS";
 
-        return queryStatement(queryRunner, statement);
+        return StatementResultUtil.queryStatement(queryRunner, statement);
     }
 
-    private Set<String> queryStatement(QueryRunner queryRunner, String statement)
+    public void createSchema(String catalogName, String databaseName, Map<String, String> parameters, String user)
     {
-        QueryClient queryClient = new QueryClient(queryRunner, Duration.standardSeconds(120), statement);
-
-        final Set<String> resultSet = new HashSet();
-        try {
-            queryClient.executeWith(new Function<StatementClient, Void>() {
-                @Nullable
-                @Override
-                public Void apply(StatementClient client)
-                {
-                    QueryData results = client.currentData();
-                    if (results.getData() != null) {
-                        for (List<Object> row : results.getData()) {
-                            resultSet.add((String) row.get(0));
-                        }
-                    }
-
-                    return null;
-                }
-            });
+        QueryRunner queryRunner = queryRunnerFactory.create(QueryEditorUIModule.UI_QUERY_SOURCE, user);
+        String statement = String.format("CREATE SCHEMA IF NOT EXISTS %s.%s", catalogName, databaseName);
+        if (parameters != null && !parameters.isEmpty()) {
+            List<String> parametersList = parameters.entrySet().stream()
+                    .map(entry -> (String.format("%s = %s", entry.getKey(), entry.getValue()))).collect(Collectors.toList());
+            String propertiesStr = parametersList.stream().collect(Collectors.joining(","));
+            statement = String.format("CREATE SCHEMA IF NOT EXISTS %s.%s WITH (%s)", catalogName, databaseName, propertiesStr);
         }
-        catch (QueryClient.QueryTimeOutException e) {
-            LOG.error("Caught timeout loading data", e);
+        Boolean result = StatementResultUtil.definitionStatement(queryRunner, statement);
+        if (result == null || !result) {
+            throw new IllegalArgumentException(String.format("failed to creat database [%s.%s]", catalogName, databaseName));
         }
-        return resultSet;
+    }
+
+    public void dropSchema(String catalogName, String databaseName, String user)
+    {
+        QueryRunner queryRunner = queryRunnerFactory.create(QueryEditorUIModule.UI_QUERY_SOURCE, user);
+        String statement = String.format("DROP SCHEMA IF EXISTS %s.%s", catalogName, databaseName);
+        Boolean result = StatementResultUtil.definitionStatement(queryRunner, statement);
+        if (result == null || !result) {
+            throw new IllegalArgumentException(String.format("failed to delete database [%s.%s]", catalogName, databaseName));
+        }
     }
 }
