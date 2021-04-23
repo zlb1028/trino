@@ -86,7 +86,7 @@ public class TableService
         String schemaName = table.getSchema();
         String tableName = table.getTable();
         QueryRunner queryRunner = queryRunnerFactory.create(QueryEditorUIModule.UI_QUERY_SOURCE, user);
-        String statement = String.format("ALTER TABLE %s.%s.%s RENAME TO %s", catalogName, schemaName, tableName, newTable);
+        String statement = String.format("ALTER TABLE %s.%s.%s RENAME TO %s.%s.%s", catalogName, schemaName, tableName, catalogName, schemaName, newTable);
         Boolean result = StatementResultUtil.definitionStatement(queryRunner, statement);
         if (result == null || !result) {
             throw new IllegalArgumentException(String.format("failed to update table: [%s.%s.%s], please check you arguments", catalogName, schemaName, tableName));

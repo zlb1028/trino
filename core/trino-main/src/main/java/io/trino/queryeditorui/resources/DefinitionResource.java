@@ -15,11 +15,10 @@ package io.trino.queryeditorui.resources;
 
 import com.google.inject.Inject;
 import io.airlift.json.JsonCodec;
-import io.trino.client.Column;
 import io.trino.queryeditorui.metadata.ColumnService;
-import io.trino.queryeditorui.metadata.PreviewTableService;
 import io.trino.queryeditorui.metadata.SchemaService;
 import io.trino.queryeditorui.metadata.TableService;
+import io.trino.queryeditorui.protocol.ColumnInfo;
 import io.trino.queryeditorui.protocol.TableInfo;
 import io.trino.security.AccessControl;
 import io.trino.security.AccessControlUtil;
@@ -30,6 +29,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -52,10 +52,11 @@ import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
 public class DefinitionResource
 {
     private static final JsonCodec<TableInfo> TABLE_INFO_CODEC = JsonCodec.jsonCodec(TableInfo.class);
+    private static final JsonCodec<ColumnInfo> COLUMN_INFO_CODEC = JsonCodec.jsonCodec(ColumnInfo.class);
+
     private final SchemaService schemaService;
     private final ColumnService columnService;
     private final AccessControl accessControl;
-    private final PreviewTableService previewTableService;
     private final GroupProvider groupProvider;
     private final TableService tableService;
 
@@ -65,14 +66,12 @@ public class DefinitionResource
             final ColumnService columnService,
             GroupProvider groupProvider,
             final AccessControl accessControl,
-            final PreviewTableService previewTableService,
             TableService tableService)
     {
         this.schemaService = schemaService;
         this.columnService = columnService;
         this.accessControl = accessControl;
         this.groupProvider = requireNonNull(groupProvider, "groupProvider is null");
-        this.previewTableService = previewTableService;
         this.tableService = tableService;
     }
 
@@ -118,7 +117,7 @@ public class DefinitionResource
     private TableInfo toTableInfo(String tableInfoJson)
     {
         if (tableInfoJson == null) {
-            throw badRequest(BAD_REQUEST, "Catalog information is missing");
+            throw badRequest(BAD_REQUEST, "Table information is missing");
         }
 
         try {
@@ -126,7 +125,7 @@ public class DefinitionResource
             return tableInfo;
         }
         catch (IllegalArgumentException ex) {
-            throw badRequest(BAD_REQUEST, "Invalid JSON string of catalog information");
+            throw badRequest(BAD_REQUEST, "Invalid JSON string of table information");
         }
     }
 
@@ -144,31 +143,57 @@ public class DefinitionResource
         return Response.ok().build();
     }
 
+    @PUT
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("table")
+    public Response updateTable(@FormDataParam("tableInfo") String tableInfoJson,
+                                @FormDataParam("newTableName") String newTableName,
+                                @Context HttpHeaders httpHeaders,
+                                @Context HttpServletRequest servletRequest)
+    {
+        String user = AccessControlUtil.getUser(accessControl, groupProvider, httpHeaders, servletRequest);
+        tableService.updateTableName(toTableInfo(tableInfoJson), newTableName, user);
+        return Response.ok().build();
+    }
+
     @POST
     @Produces(MediaType.APPLICATION_JSON)
     @Path("column")
     public Response addColumn(@FormDataParam("tableInfo") String tableInfoJson,
-                              @FormDataParam("column") Column column,
+                              @FormDataParam("columnInfo") String columnInfoJson,
                               @Context HttpHeaders httpHeaders,
                               @Context HttpServletRequest servletRequest)
     {
         String user = AccessControlUtil.getUser(accessControl, groupProvider, httpHeaders, servletRequest);
-        columnService.addColumn(toTableInfo(tableInfoJson), column, user);
+        columnService.addColumn(toTableInfo(tableInfoJson), toColumnInfo(columnInfoJson), user);
         return Response.ok().build();
+    }
+
+    private ColumnInfo toColumnInfo(String columnInfoJson)
+    {
+        if (columnInfoJson == null) {
+            throw badRequest(BAD_REQUEST, "Column information is missing");
+        }
+
+        try {
+            ColumnInfo columnInfo = COLUMN_INFO_CODEC.fromJson(columnInfoJson);
+            return columnInfo;
+        }
+        catch (IllegalArgumentException ex) {
+            throw badRequest(BAD_REQUEST, "Invalid JSON string of column information");
+        }
     }
 
     @DELETE
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("column/{catalog}/{schema}/{table}/{column}")
-    public Response dropColumn(@NotNull @PathParam("catalog") String catalog,
-                               @NotNull @PathParam("schema") String schema,
-                               @NotNull @PathParam("table") String table,
+    @Path("column")
+    public Response dropColumn(@FormDataParam("tableInfo") String tableInfoJson,
                                @FormDataParam("column") String column,
                                @Context HttpHeaders httpHeaders,
                                @Context HttpServletRequest servletRequest)
     {
         String user = AccessControlUtil.getUser(accessControl, groupProvider, httpHeaders, servletRequest);
-        columnService.dropColumn(catalog, schema, table, column, user);
+        columnService.dropColumn(toTableInfo(tableInfoJson), column, user);
         return Response.ok().build();
     }
 }

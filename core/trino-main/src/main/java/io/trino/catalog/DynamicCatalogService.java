@@ -29,6 +29,7 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
@@ -272,7 +273,7 @@ public class DynamicCatalogService
         }
     }
 
-    public Response showCatalogInfo(HttpRequestSessionContext sessionContext)
+    public Response showAllCatalogInfo(HttpRequestSessionContext sessionContext)
             throws IOException
     {
         Set<String> catalogNames = dynamicCatalogStore.listCatalogNames(SHARE);
@@ -291,6 +292,23 @@ public class DynamicCatalogService
                         }
                     });
             return Response.ok(catalogInfos).build();
+        }
+        catch (Exception e) {
+            log.error("Filter catalogs error : %s.", e.getMessage());
+            throw badRequest(UNAUTHORIZED, "No permission");
+        }
+    }
+
+    public Response showCatalogInfo(HttpRequestSessionContext sessionContext, String catalog) throws IOException
+    {
+        CatalogInfo catalogInfo = null;
+        try {
+            AccessControlUtil.checkCanImpersonateUser(accessControl, sessionContext);
+            Set<String> allowedCatalogs = accessControl.filterCatalogs(sessionContext.getIdentity(), Collections.singleton(catalog));
+            if (allowedCatalogs != null && allowedCatalogs.size() > 0) {
+                catalogInfo = dynamicCatalogStore.getCatalogInformation(catalog);
+            }
+            return Response.ok(Collections.singleton(catalogInfo)).build();
         }
         catch (Exception e) {
             log.error("Filter catalogs error : %s.", e.getMessage());
