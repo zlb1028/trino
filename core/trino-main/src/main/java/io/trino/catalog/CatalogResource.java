@@ -312,7 +312,7 @@ public class CatalogResource
         Optional<Identity> identity = Optional.ofNullable((Identity) servletRequest.getAttribute(AUTHENTICATED_IDENTITY));
         MultivaluedMap<String, String> headers = httpHeaders.getRequestHeaders();
         try {
-            response = service.showCatalogInfo(new HttpRequestSessionContext(headers, Optional.of(""), remoteAddress, identity, groupProvider));
+            response = service.showAllCatalogInfo(new HttpRequestSessionContext(headers, Optional.of(""), remoteAddress, identity, groupProvider));
         }
         catch (WebApplicationException ex) {
             throw ex;
@@ -321,6 +321,29 @@ public class CatalogResource
             throw badRequest(BAD_REQUEST, "show catalog failed. please check your request info.");
         }
 
+        return response;
+    }
+
+    @GET
+    @Path("/info/{catalog}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response showCatalogInfo(@NotNull @PathParam("catalog") String catalog,
+                                    @Context HttpHeaders httpHeaders,
+                                    @Context HttpServletRequest servletRequest)
+    {
+        Response response;
+        String remoteAddress = servletRequest.getRemoteAddr();
+        Optional<Identity> identity = Optional.ofNullable((Identity) servletRequest.getAttribute(AUTHENTICATED_IDENTITY));
+        MultivaluedMap<String, String> headers = httpHeaders.getRequestHeaders();
+        try {
+            response = service.showCatalogInfo(new HttpRequestSessionContext(headers, Optional.of(""), remoteAddress, identity, groupProvider), catalog);
+        }
+        catch (WebApplicationException ex) {
+            throw ex;
+        }
+        catch (Throwable ex) {
+            throw badRequest(BAD_REQUEST, "show catalog failed. please check your request info.");
+        }
         return response;
     }
 }
