@@ -15,6 +15,7 @@ package io.trino.queryeditorui.util;
 
 import io.airlift.log.Logger;
 import io.trino.client.QueryData;
+import io.trino.client.QueryResults;
 import io.trino.client.StatementClient;
 import io.trino.queryeditorui.execution.QueryClient;
 import io.trino.queryeditorui.execution.QueryRunner;
@@ -56,6 +57,10 @@ public class StatementResultUtil
                             resultSet[0] = (Boolean) row.get(0);
                         }
                     }
+
+                    if (results instanceof QueryResults && ((QueryResults) results).getError() != null) {
+                        throw new RuntimeException(((QueryResults) results).getError().getMessage());
+                    }
                     return null;
                 }
             });
@@ -84,6 +89,9 @@ public class StatementResultUtil
                         }
                     }
 
+                    if (results instanceof QueryResults && ((QueryResults) results).getError() != null) {
+                        throw new RuntimeException(((QueryResults) results).getError().getMessage());
+                    }
                     return null;
                 }
             });
