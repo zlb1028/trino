@@ -32,7 +32,9 @@ import io.trino.GroupByHashPageIndexerFactory;
 import io.trino.PagesIndexPageSorter;
 import io.trino.SystemSessionProperties;
 import io.trino.block.BlockJsonSerde;
+import io.trino.catalog.CatalogStoreUtil;
 import io.trino.catalog.DynamicCatalogScanner;
+import io.trino.catalog.DynamicCatalogStore;
 import io.trino.client.NodeVersion;
 import io.trino.client.ServerInfo;
 import io.trino.connector.ConnectorManager;
@@ -60,6 +62,7 @@ import io.trino.execution.scheduler.NodeScheduler;
 import io.trino.execution.scheduler.NodeSchedulerConfig;
 import io.trino.execution.scheduler.TopologyAwareNodeSelectorModule;
 import io.trino.execution.scheduler.UniformNodeSelectorModule;
+import io.trino.filesystem.FileSystemClientManager;
 import io.trino.index.IndexManager;
 import io.trino.memory.LocalMemoryManager;
 import io.trino.memory.LocalMemoryManagerExporter;
@@ -90,6 +93,8 @@ import io.trino.operator.LookupJoinOperators;
 import io.trino.operator.OperatorStats;
 import io.trino.operator.PagesIndex;
 import io.trino.operator.index.IndexJoinLookupStats;
+import io.trino.security.CipherTextDecryptUtil;
+import io.trino.security.NoneCipherTextDecrypt;
 import io.trino.server.ExpressionSerialization.ExpressionDeserializer;
 import io.trino.server.ExpressionSerialization.ExpressionSerializer;
 import io.trino.server.PluginManager.PluginsProvider;
@@ -100,6 +105,7 @@ import io.trino.spi.PageIndexerFactory;
 import io.trino.spi.PageSorter;
 import io.trino.spi.block.Block;
 import io.trino.spi.block.BlockEncodingSerde;
+import io.trino.spi.security.CipherTextDecrypt;
 import io.trino.spi.type.Type;
 import io.trino.spi.type.TypeOperators;
 import io.trino.spi.type.TypeSignature;
@@ -410,12 +416,17 @@ public class ServerMainModule
         jsonCodecBinder(binder).bindJsonCodec(NodeStatus.class);
 
         // plugin manager
+        binder.bind(FileSystemClientManager.class).in(Scopes.SINGLETON);
         binder.bind(PluginManager.class).in(Scopes.SINGLETON);
         newOptionalBinder(binder, PluginsProvider.class).setDefault()
                 .to(ServerPluginsProvider.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(ServerPluginsProviderConfig.class);
 
         binder.bind(CatalogManager.class).in(Scopes.SINGLETON);
+        binder.bind(CipherTextDecrypt.class).to(NoneCipherTextDecrypt.class).in(Scopes.SINGLETON);
+        binder.bind(CipherTextDecryptUtil.class).in(Scopes.SINGLETON);
+        binder.bind(CatalogStoreUtil.class).in(Scopes.SINGLETON);
+        binder.bind(DynamicCatalogStore.class).in(Scopes.SINGLETON);
         binder.bind(DynamicCatalogScanner.class).in(Scopes.SINGLETON);
 
         // block encodings

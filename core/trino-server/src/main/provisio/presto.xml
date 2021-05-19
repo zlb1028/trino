@@ -264,4 +264,9 @@
             <unpack />
         </artifact>
     </artifactSet>
+    <artifactSet to="plugin/filesystem">
+        <artifact id="${project.groupId}:trino-filesystem:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
 </runtime>
