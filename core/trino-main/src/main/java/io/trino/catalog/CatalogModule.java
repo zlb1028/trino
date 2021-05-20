@@ -37,10 +37,10 @@ public class CatalogModule
     {
         jaxrsBinder(binder).bind(CatalogResource.class);
         jaxrsBinder(binder).bind(MultiPartFeature.class);
+        binder.bind(CatalogStoreUtil.class).in(Scopes.SINGLETON);
         binder.bind(DynamicCatalogStore.class).in(Scopes.SINGLETON);
         binder.bind(SecurityKeyManager.class)
                 .to(KeystoreSecurityKeyManager.class);
-        binder.bind(CatalogStoreUtil.class).in(Scopes.SINGLETON);
         binder.bind(FileSystemClientManager.class).in(Scopes.SINGLETON);
         binder.bind(CipherTextDecryptUtil.class).in(Scopes.SINGLETON);
         binder.bind(PasswordSecurityConfig.class).in(Scopes.SINGLETON);
