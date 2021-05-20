@@ -131,7 +131,7 @@ access to the data in Trino, can be enabled with
 ``hive.legacy-hive-view-translation=true``.
 
 For temporary usage of the legacy behavior for a specific catalog, you can set
-the``legacy_hive_view_translation`` :doc:`catalog session property
+the ``legacy_hive_view_translation`` :doc:`catalog session property
 </sql/set-session>` to ``true``.
 
 This legacy behavior interprets any HiveQL query that defines a view as if it
@@ -371,7 +371,7 @@ Property Name                                      Description                  
                                                    will be used for staging while writing sorted tables which
                                                    can be inefficient when writing to object stores like S3.
 
-``hive.temporary-staging-directory-path``          Controls the location of temporary staging directory that    ``/tmp/${USER}``
+``hive.temporary-staging-directory-path``          Controls the location of temporary staging directory that    ``/tmp/presto-${USER}``
                                                    is used for write operations. The ``${USER}`` placeholder
                                                    can be used to use a different location for each user.
 
@@ -397,6 +397,9 @@ with ORC files performed by the Hive connector.
     :widths: 30, 50, 20
     :header-rows: 1
 
+    * - Property Name
+      - Description
+      - Default
     * - ``hive.orc.time-zone``
       - Sets the default time zone for legacy ORC files that did not declare a
         time zone.
@@ -417,6 +420,9 @@ with Parquet files performed by the Hive connector.
     :widths: 30, 50, 20
     :header-rows: 1
 
+    * - Property Name
+      - Description
+      - Default
     * - ``hive.parquet.time-zone``
       - Adjusts timestamp values to a specific time zone. For Hive 3.1+, set
         this to UTC.

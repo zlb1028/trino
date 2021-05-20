@@ -15,11 +15,15 @@ package io.trino.metadata;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.airlift.slice.Slice;
 import io.trino.Session;
 import io.trino.client.NodeVersion;
@@ -143,6 +147,7 @@ import java.util.stream.Collectors;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Verify.verify;
+import static com.google.common.base.Verify.verifyNotNull;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
@@ -191,6 +196,7 @@ public final class MetadataManager
     private final SessionPropertyManager sessionPropertyManager;
     private final SchemaPropertyManager schemaPropertyManager;
     private final TablePropertyManager tablePropertyManager;
+    private final MaterializedViewPropertyManager materializedViewPropertyManager;
     private final ColumnPropertyManager columnPropertyManager;
     private final AnalyzePropertyManager analyzePropertyManager;
     private final TransactionManager transactionManager;
@@ -201,12 +207,16 @@ public final class MetadataManager
 
     private final ResolvedFunctionDecoder functionDecoder;
 
+    private final LoadingCache<OperatorCacheKey, ResolvedFunction> operatorCache;
+    private final LoadingCache<CoercionCacheKey, ResolvedFunction> coercionCache;
+
     @Inject
     public MetadataManager(
             FeaturesConfig featuresConfig,
             SessionPropertyManager sessionPropertyManager,
             SchemaPropertyManager schemaPropertyManager,
             TablePropertyManager tablePropertyManager,
+            MaterializedViewPropertyManager materializedViewPropertyManager,
             ColumnPropertyManager columnPropertyManager,
             AnalyzePropertyManager analyzePropertyManager,
             TransactionManager transactionManager,
@@ -223,6 +233,7 @@ public final class MetadataManager
         this.sessionPropertyManager = requireNonNull(sessionPropertyManager, "sessionPropertyManager is null");
         this.schemaPropertyManager = requireNonNull(schemaPropertyManager, "schemaPropertyManager is null");
         this.tablePropertyManager = requireNonNull(tablePropertyManager, "tablePropertyManager is null");
+        this.materializedViewPropertyManager = requireNonNull(materializedViewPropertyManager, "materializedViewPropertyManager is null");
         this.columnPropertyManager = requireNonNull(columnPropertyManager, "columnPropertyManager is null");
         this.analyzePropertyManager = requireNonNull(analyzePropertyManager, "analyzePropertyManager is null");
         this.transactionManager = requireNonNull(transactionManager, "transactionManager is null");
@@ -248,6 +259,23 @@ public final class MetadataManager
         verifyTypes();
 
         functionDecoder = new ResolvedFunctionDecoder(this::getType);
+
+        operatorCache = CacheBuilder.newBuilder()
+                .maximumSize(1000)
+                .build(CacheLoader.from(key -> {
+                    String name = mangleOperatorName(key.getOperatorType());
+                    return resolveFunction(QualifiedName.of(name), fromTypes(key.getArgumentTypes()));
+                }));
+
+        coercionCache = CacheBuilder.newBuilder()
+                .maximumSize(1000)
+                .build(CacheLoader.from(key -> {
+                    String name = mangleOperatorName(key.getOperatorType());
+                    Type fromType = key.getFromType();
+                    Type toType = key.getToType();
+                    Signature signature = new Signature(name, toType.getTypeSignature(), ImmutableList.of(fromType.getTypeSignature()));
+                    return resolve(functionResolver.resolveCoercion(functions.get(QualifiedName.of(name)), signature));
+                }));
     }
 
     public static MetadataManager createTestMetadataManager()
@@ -278,6 +306,7 @@ public final class MetadataManager
                 new SessionPropertyManager(),
                 new SchemaPropertyManager(),
                 new TablePropertyManager(),
+                new MaterializedViewPropertyManager(),
                 new ColumnPropertyManager(),
                 new AnalyzePropertyManager(),
                 transactionManager,
@@ -534,7 +563,9 @@ public final class MetadataManager
     {
         CatalogName catalogName = tableHandle.getCatalogName();
         ConnectorMetadata metadata = getMetadata(session, catalogName);
-        return metadata.getTableStatistics(session.toConnectorSession(catalogName), tableHandle.getConnectorHandle(), constraint);
+        TableStatistics tableStatistics = metadata.getTableStatistics(session.toConnectorSession(catalogName), tableHandle.getConnectorHandle(), constraint);
+        verifyNotNull(tableStatistics, "%s returned null tableStatistics for %s", metadata, tableHandle);
+        return tableStatistics;
     }
 
     @Override
@@ -1884,11 +1915,15 @@ public final class MetadataManager
             throws OperatorNotFoundException
     {
         try {
-            return resolveFunction(QualifiedName.of(mangleOperatorName(operatorType)), fromTypes(argumentTypes));
+            return operatorCache.getUnchecked(new OperatorCacheKey(operatorType, argumentTypes));
         }
-        catch (TrinoException e) {
-            if (e.getErrorCode().getCode() == FUNCTION_NOT_FOUND.toErrorCode().getCode()) {
-                throw new OperatorNotFoundException(operatorType, argumentTypes, e);
+        catch (UncheckedExecutionException e) {
+            if (e.getCause() instanceof TrinoException) {
+                TrinoException cause = (TrinoException) e.getCause();
+                if (cause.getErrorCode().getCode() == FUNCTION_NOT_FOUND.toErrorCode().getCode()) {
+                    throw new OperatorNotFoundException(operatorType, argumentTypes, cause);
+                }
+                throw cause;
             }
             throw e;
         }
@@ -1899,12 +1934,15 @@ public final class MetadataManager
     {
         checkArgument(operatorType == OperatorType.CAST || operatorType == OperatorType.SATURATED_FLOOR_CAST);
         try {
-            String name = mangleOperatorName(operatorType);
-            return resolve(functionResolver.resolveCoercion(functions.get(QualifiedName.of(name)), new Signature(name, toType.getTypeSignature(), ImmutableList.of(fromType.getTypeSignature()))));
+            return coercionCache.getUnchecked(new CoercionCacheKey(operatorType, fromType, toType));
         }
-        catch (TrinoException e) {
-            if (e.getErrorCode().getCode() == FUNCTION_IMPLEMENTATION_MISSING.toErrorCode().getCode()) {
-                throw new OperatorNotFoundException(operatorType, ImmutableList.of(fromType), toType.getTypeSignature(), e);
+        catch (UncheckedExecutionException e) {
+            if (e.getCause() instanceof TrinoException) {
+                TrinoException cause = (TrinoException) e.getCause();
+                if (cause.getErrorCode().getCode() == FUNCTION_IMPLEMENTATION_MISSING.toErrorCode().getCode()) {
+                    throw new OperatorNotFoundException(operatorType, ImmutableList.of(fromType), toType.getTypeSignature(), cause);
+                }
+                throw cause;
             }
             throw e;
         }
@@ -2212,6 +2250,12 @@ public final class MetadataManager
     }
 
     @Override
+    public MaterializedViewPropertyManager getMaterializedViewPropertyManager()
+    {
+        return materializedViewPropertyManager;
+    }
+
+    @Override
     public ColumnPropertyManager getColumnPropertyManager()
     {
         return columnPropertyManager;
@@ -2312,6 +2356,98 @@ public final class MetadataManager
                 ConnectorSession connectorSession = session.toConnectorSession(catalogMetadata.getCatalogName());
                 catalogMetadata.getMetadata().cleanupQuery(connectorSession);
             }
+        }
+    }
+
+    private static class OperatorCacheKey
+    {
+        private final OperatorType operatorType;
+        private final List<? extends Type> argumentTypes;
+
+        private OperatorCacheKey(OperatorType operatorType, List<? extends Type> argumentTypes)
+        {
+            this.operatorType = requireNonNull(operatorType, "operatorType is null");
+            this.argumentTypes = ImmutableList.copyOf(requireNonNull(argumentTypes, "argumentTypes is null"));
+        }
+
+        public OperatorType getOperatorType()
+        {
+            return operatorType;
+        }
+
+        public List<? extends Type> getArgumentTypes()
+        {
+            return argumentTypes;
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(operatorType, argumentTypes);
+        }
+
+        @Override
+        public boolean equals(Object obj)
+        {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof OperatorCacheKey)) {
+                return false;
+            }
+            OperatorCacheKey other = (OperatorCacheKey) obj;
+            return Objects.equals(this.operatorType, other.operatorType) &&
+                    Objects.equals(this.argumentTypes, other.argumentTypes);
+        }
+    }
+
+    private static class CoercionCacheKey
+    {
+        private final OperatorType operatorType;
+        private final Type fromType;
+        private final Type toType;
+
+        private CoercionCacheKey(OperatorType operatorType, Type fromType, Type toType)
+        {
+            this.operatorType = requireNonNull(operatorType, "operatorType is null");
+            this.fromType = requireNonNull(fromType, "fromType is null");
+            this.toType = requireNonNull(toType, "toType is null");
+        }
+
+        public OperatorType getOperatorType()
+        {
+            return operatorType;
+        }
+
+        public Type getFromType()
+        {
+            return fromType;
+        }
+
+        public Type getToType()
+        {
+            return toType;
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(operatorType, fromType, toType);
+        }
+
+        @Override
+        public boolean equals(Object obj)
+        {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof CoercionCacheKey)) {
+                return false;
+            }
+            CoercionCacheKey other = (CoercionCacheKey) obj;
+            return Objects.equals(this.operatorType, other.operatorType) &&
+                    Objects.equals(this.fromType, other.fromType) &&
+                    Objects.equals(this.toType, other.toType);
         }
     }
 }

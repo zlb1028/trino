@@ -131,6 +131,10 @@ public abstract class BaseSqlServerConnectorTest
 
         assertThat(query("SELECT count(*) FROM orders")).isFullyPushedDown();
         assertThat(query("SELECT count(nationkey) FROM nation")).isFullyPushedDown();
+        assertThat(query("SELECT count(1) FROM orders")).isFullyPushedDown();
+        assertThat(query("SELECT count() FROM orders")).isFullyPushedDown();
+        assertThat(query("SELECT custkey, count(1) FROM orders GROUP BY custkey")).isFullyPushedDown();
+
         assertThat(query("SELECT min(totalprice) FROM orders")).isFullyPushedDown();
 
         // GROUP BY
@@ -432,31 +436,6 @@ public abstract class BaseSqlServerConnectorTest
     }
 
     @Test
-    public void testLimitPushdown()
-    {
-        assertThat(query("SELECT name FROM nation LIMIT 30")).isFullyPushedDown(); // Use high limit for result determinism
-
-        // with filter over numeric column
-        assertThat(query("SELECT name FROM nation WHERE regionkey = 3 LIMIT 5")).isFullyPushedDown();
-
-        // with filter over varchar column
-        assertThat(query("SELECT name FROM nation WHERE name < 'EEE' LIMIT 5"))
-                // SQL Server is case insensitive by default
-                .isNotFullyPushedDown(FilterNode.class);
-
-        // with aggregation
-        assertThat(query("SELECT max(regionkey) FROM nation LIMIT 5")).isFullyPushedDown(); // global aggregation, LIMIT removed
-        assertThat(query("SELECT regionkey, max(name) FROM nation GROUP BY regionkey LIMIT 5")).isFullyPushedDown();
-        assertThat(query("SELECT DISTINCT regionkey FROM nation LIMIT 5")).isFullyPushedDown();
-
-        // with filter and aggregation
-        assertThat(query("SELECT regionkey, count(*) FROM nation WHERE nationkey < 5 GROUP BY regionkey LIMIT 3")).isFullyPushedDown();
-        assertThat(query("SELECT regionkey, count(*) FROM nation WHERE name < 'EGYPT' GROUP BY regionkey LIMIT 3"))
-                // SQL Server is case insensitive by default
-                .isNotFullyPushedDown(FilterNode.class);
-    }
-
-    @Test
     public void testTooLargeDomainCompactionThreshold()
     {
         assertQueryFails(
@@ -556,12 +535,12 @@ public abstract class BaseSqlServerConnectorTest
                 "('2013-01-01', '2014-01-01', '2015-01-01')");
         onRemoteDatabase().execute("CREATE PARTITION SCHEME psSales\n" +
                 "AS PARTITION pfSales \n" +
-                "ALL TO ([Primary])");
-        onRemoteDatabase().execute("CREATE TABLE partitionedSales (\n" +
+                "ALL TO ([PRIMARY])");
+        onRemoteDatabase().execute("CREATE TABLE partitionedsales (\n" +
                 "   SalesDate DATE,\n" +
                 "   Quantity INT\n" +
                 ") ON psSales(SalesDate) WITH (DATA_COMPRESSION = PAGE)");
-        assertThat((String) computeActual("SHOW CREATE TABLE partitionedSales").getOnlyValue())
+        assertThat((String) computeActual("SHOW CREATE TABLE partitionedsales").getOnlyValue())
                 .matches("CREATE TABLE \\w+\\.\\w+\\.partitionedsales \\Q(\n" +
                         "   salesdate date,\n" +
                         "   quantity integer\n" +

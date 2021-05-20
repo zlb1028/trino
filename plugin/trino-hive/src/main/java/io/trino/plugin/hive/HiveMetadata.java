@@ -66,7 +66,6 @@ import io.trino.spi.connector.ConnectorOutputTableHandle;
 import io.trino.spi.connector.ConnectorPartitioningHandle;
 import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorTableHandle;
-import io.trino.spi.connector.ConnectorTableLayoutHandle;
 import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.ConnectorTablePartitioning;
 import io.trino.spi.connector.ConnectorTableProperties;
@@ -133,7 +132,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -1578,8 +1576,8 @@ public class HiveMetadata
         Table table = metastore.getTable(identity, tableName.getSchemaName(), tableName.getTableName())
                 .orElseThrow(() -> new TableNotFoundException(tableName));
 
-        if (!isTransactionalTable(table.getParameters())) {
-            throw new TrinoException(NOT_SUPPORTED, "Hive update is only supported for transactional tables");
+        if (!isFullAcidTable(table.getParameters())) {
+            throw new TrinoException(NOT_SUPPORTED, "Hive update is only supported for ACID transactional tables");
         }
 
         // Verify that none of the updated columns are partition columns or bucket columns
@@ -2009,13 +2007,6 @@ public class HiveMetadata
     }
 
     @Override
-    public boolean supportsMetadataDelete(ConnectorSession session, ConnectorTableHandle tableHandle, ConnectorTableLayoutHandle tableLayoutHandle)
-    {
-        HiveTableHandle handle = (HiveTableHandle) tableHandle;
-        return handle.getTableParameters().isEmpty() || !isFullAcidTable(handle.getTableParameters().get());
-    }
-
-    @Override
     public Map<SchemaTableName, ConnectorViewDefinition> getViews(ConnectorSession session, Optional<String> schemaName)
     {
         ImmutableMap.Builder<SchemaTableName, ConnectorViewDefinition> views = ImmutableMap.builder();
@@ -2155,7 +2146,10 @@ public class HiveMetadata
     @Override
     public Optional<ConnectorTableHandle> applyDelete(ConnectorSession session, ConnectorTableHandle handle)
     {
-        return Optional.of(handle);
+        Map<String, String> parameters = ((HiveTableHandle) handle).getTableParameters()
+                .orElseThrow(() -> new IllegalStateException("tableParameters missing from handle"));
+
+        return isFullAcidTable(parameters) ? Optional.empty() : Optional.of(handle);
     }
 
     @Override
@@ -2265,10 +2259,10 @@ public class HiveMetadata
                 if (referencedColumns.isEmpty() || Collections.disjoint(referencedColumns.get(), partitionColumns)) {
                     String partitionColumnNames = partitionColumns.stream()
                             .map(HiveColumnHandle::getName)
-                            .collect(Collectors.joining(","));
+                            .collect(joining(", "));
                     throw new TrinoException(
                             StandardErrorCode.QUERY_REJECTED,
-                            format("Filter required on %s.%s for at least one partition column: %s ", handle.getSchemaName(), handle.getTableName(), partitionColumnNames));
+                            format("Filter required on %s.%s for at least one partition column: %s", handle.getSchemaName(), handle.getTableName(), partitionColumnNames));
                 }
             }
         }

@@ -39,7 +39,6 @@ import io.trino.sql.parser.SqlParser;
 import io.trino.sql.planner.Plan;
 import io.trino.sql.planner.PlanFragmenter;
 import io.trino.sql.planner.PlanOptimizers;
-import io.trino.sql.planner.RuleStatsRecorder;
 import io.trino.sql.planner.TypeAnalyzer;
 import io.trino.sql.planner.optimizations.PlanNodeSearcher;
 import io.trino.sql.planner.optimizations.PlanOptimizer;
@@ -57,8 +56,6 @@ import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-import org.weakref.jmx.MBeanExporter;
-import org.weakref.jmx.testing.TestingMBeanServer;
 
 import java.util.List;
 import java.util.Optional;
@@ -146,7 +143,7 @@ public abstract class AbstractTestQueryFramework
 
     protected AssertProvider<QueryAssert> query(@Language("SQL") String sql)
     {
-        return queryAssertions.query(sql);
+        return query(getSession(), sql);
     }
 
     protected AssertProvider<QueryAssert> query(Session session, @Language("SQL") String sql)
@@ -388,7 +385,7 @@ public abstract class AbstractTestQueryFramework
 
     protected String formatSqlText(String sql)
     {
-        return formatSql(sqlParser.createStatement(sql, createParsingOptions(queryRunner.getDefaultSession())));
+        return formatSql(sqlParser.createStatement(sql, createParsingOptions(getSession())));
     }
 
     //TODO: should WarningCollector be added?
@@ -397,7 +394,7 @@ public abstract class AbstractTestQueryFramework
         QueryExplainer explainer = getQueryExplainer();
         return transaction(queryRunner.getTransactionManager(), queryRunner.getAccessControl())
                 .singleStatement()
-                .execute(queryRunner.getDefaultSession(), session -> {
+                .execute(getSession(), session -> {
                     return explainer.getPlan(session, sqlParser.createStatement(query, createParsingOptions(session)), planType, emptyList(), WarningCollector.NOOP);
                 });
     }
@@ -426,7 +423,6 @@ public abstract class AbstractTestQueryFramework
                 new TypeAnalyzer(sqlParser, metadata),
                 new TaskManagerConfig(),
                 forceSingleNode,
-                new MBeanExporter(new TestingMBeanServer()),
                 queryRunner.getSplitManager(),
                 queryRunner.getPageSourceManager(),
                 queryRunner.getStatsCalculator(),
@@ -434,7 +430,6 @@ public abstract class AbstractTestQueryFramework
                 new CostCalculatorWithEstimatedExchanges(costCalculator, taskCountEstimator),
                 new CostComparator(featuresConfig),
                 taskCountEstimator,
-                new RuleStatsRecorder(),
                 queryRunner.getNodePartitioningManager()).get();
         return new QueryExplainer(
                 optimizers,

@@ -121,6 +121,7 @@ public class Query
     private final QueryId queryId;
     private final Session session;
     private final Slug slug;
+    private final Optional<URI> queryInfoUrl;
 
     @GuardedBy("this")
     private final ExchangeClient exchangeClient;
@@ -186,12 +187,13 @@ public class Query
             Session session,
             Slug slug,
             QueryManager queryManager,
+            Optional<URI> queryInfoUrl,
             ExchangeClient exchangeClient,
             Executor dataProcessorExecutor,
             ScheduledExecutorService timeoutExecutor,
             BlockEncodingSerde blockEncodingSerde)
     {
-        Query result = new Query(session, slug, queryManager, exchangeClient, dataProcessorExecutor, timeoutExecutor, blockEncodingSerde);
+        Query result = new Query(session, slug, queryManager, queryInfoUrl, exchangeClient, dataProcessorExecutor, timeoutExecutor, blockEncodingSerde);
 
         result.queryManager.addOutputInfoListener(result.getQueryId(), result::setQueryOutputInfo);
 
@@ -209,6 +211,7 @@ public class Query
             Session session,
             Slug slug,
             QueryManager queryManager,
+            Optional<URI> queryInfoUrl,
             ExchangeClient exchangeClient,
             Executor resultsProcessorExecutor,
             ScheduledExecutorService timeoutExecutor,
@@ -217,16 +220,17 @@ public class Query
         requireNonNull(session, "session is null");
         requireNonNull(slug, "slug is null");
         requireNonNull(queryManager, "queryManager is null");
+        requireNonNull(queryInfoUrl, "queryInfoUrl is null");
         requireNonNull(exchangeClient, "exchangeClient is null");
         requireNonNull(resultsProcessorExecutor, "resultsProcessorExecutor is null");
         requireNonNull(timeoutExecutor, "timeoutExecutor is null");
         requireNonNull(blockEncodingSerde, "blockEncodingSerde is null");
 
         this.queryManager = queryManager;
-
         this.queryId = session.getQueryId();
         this.session = session;
         this.slug = slug;
+        this.queryInfoUrl = queryInfoUrl;
         this.exchangeClient = exchangeClient;
         this.resultsProcessorExecutor = resultsProcessorExecutor;
         this.timeoutExecutor = timeoutExecutor;
@@ -405,10 +409,11 @@ public class Query
 
         verify(nextToken.isPresent(), "Cannot generate next result when next token is not present");
         verify(token == nextToken.getAsLong(), "Expected token to equal next token");
-        URI queryHtmlUri = uriInfo.getRequestUriBuilder()
-                .replacePath("ui/query.html")
-                .replaceQuery(queryId.toString())
-                .build();
+        URI queryHtmlUri = queryInfoUrl.orElseGet(() ->
+                uriInfo.getRequestUriBuilder()
+                        .replacePath("ui/query.html")
+                        .replaceQuery(queryId.toString())
+                        .build());
 
         // get the query info before returning
         // force update if query manager is closed

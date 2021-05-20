@@ -31,6 +31,15 @@ where ``from_item`` is one of
     from_item join_type from_item
       [ ON join_condition | USING ( join_column [, ...] ) ]
 
+.. code-block:: text
+
+    table_name [ [ AS ] alias [ ( column_alias [, ...] ) ] ]
+      MATCH_RECOGNIZE pattern_recognition_specification
+        [ [ AS ] alias [ ( column_alias [, ...] ) ] ]
+
+For detailed description of ``MATCH_RECOGNIZE`` clause, see :doc:`pattern
+recognition in FROM clause</sql/match-recognize>`.
+
 and ``join_type`` is one of
 
 .. code-block:: text
@@ -867,8 +876,10 @@ Otherwise, it is arbitrary which rows are discarded.
 If the count specified in the ``OFFSET`` clause equals or exceeds the size
 of the result set, the final result is empty.
 
-LIMIT or FETCH FIRST clauses
-----------------------------
+.. _limit-clause:
+
+LIMIT or FETCH FIRST clause
+---------------------------
 
 The ``LIMIT`` or ``FETCH FIRST`` clause restricts the number of rows
 in the result set.

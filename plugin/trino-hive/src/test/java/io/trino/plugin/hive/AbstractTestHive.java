@@ -822,7 +822,7 @@ public abstract class AbstractTestHive
                             ImmutableMap.of(),
                             TupleDomain.all()));
                 },
-                new NoneHiveMaterializedViewMetadata()
+                () -> new NoneHiveMaterializedViewMetadata()
                 {
                     @Override
                     public Optional<ConnectorMaterializedViewDefinition> getMaterializedView(ConnectorSession session, SchemaTableName viewName)
@@ -837,7 +837,7 @@ public abstract class AbstractTestHive
                                 Optional.empty(),
                                 ImmutableList.of(new ConnectorMaterializedViewDefinition.Column("abc", TypeId.of("type"))),
                                 Optional.empty(),
-                                Optional.empty(),
+                                "alice",
                                 ImmutableMap.of()));
                     }
                 },
@@ -3926,7 +3926,7 @@ public abstract class AbstractTestHive
         FileSystem fileSystem = hdfsEnvironment.getFileSystem(context, path);
         if (fileSystem.exists(path)) {
             for (FileStatus fileStatus : fileSystem.listStatus(path)) {
-                if (fileStatus.getPath().getName().startsWith(".presto")) {
+                if (fileStatus.getPath().getName().startsWith(".trino")) {
                     // skip hidden files
                 }
                 else if (fileStatus.isFile()) {
@@ -5021,7 +5021,7 @@ public abstract class AbstractTestHive
         return Arrays.stream(fileSystem.listStatus(path))
                 .map(FileStatus::getPath)
                 .map(Path::getName)
-                .filter(name -> !name.startsWith(".presto"))
+                .filter(name -> !name.startsWith(".trino"))
                 .collect(toList());
     }
 

@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static com.google.cloud.bigquery.TableDefinition.Type.TABLE;
 import static com.google.cloud.bigquery.TableDefinition.Type.VIEW;
@@ -113,6 +114,16 @@ class BigQueryClient
 
     Optional<RemoteDatabaseObject> toRemoteTable(String projectId, String remoteDatasetName, String tableName)
     {
+        return toRemoteTable(projectId, remoteDatasetName, tableName, () -> listTables(DatasetId.of(projectId, remoteDatasetName), TABLE, VIEW));
+    }
+
+    Optional<RemoteDatabaseObject> toRemoteTable(String projectId, String remoteDatasetName, String tableName, Iterable<Table> tables)
+    {
+        return toRemoteTable(projectId, remoteDatasetName, tableName, () -> tables);
+    }
+
+    private Optional<RemoteDatabaseObject> toRemoteTable(String projectId, String remoteDatasetName, String tableName, Supplier<Iterable<Table>> tables)
+    {
         requireNonNull(projectId, "projectId is null");
         requireNonNull(remoteDatasetName, "remoteDatasetName is null");
         requireNonNull(tableName, "tableName is null");
@@ -129,7 +140,7 @@ class BigQueryClient
 
         // cache miss, reload the cache
         Map<TableId, Optional<RemoteDatabaseObject>> mapping = new HashMap<>();
-        for (Table table : listTables(DatasetId.of(projectId, remoteDatasetName), TABLE, VIEW)) {
+        for (Table table : tables.get()) {
             mapping.merge(
                     tableIdToLowerCase(table.getTableId()),
                     Optional.of(RemoteDatabaseObject.of(table.getTableId().getTable())),
@@ -200,6 +211,16 @@ class BigQueryClient
     Table update(TableInfo table)
     {
         return bigQuery.update(table);
+    }
+
+    public void createSchema(DatasetInfo datasetInfo)
+    {
+        bigQuery.create(datasetInfo);
+    }
+
+    public void dropSchema(DatasetId datasetId)
+    {
+        bigQuery.delete(datasetId);
     }
 
     public void createTable(TableInfo tableInfo)

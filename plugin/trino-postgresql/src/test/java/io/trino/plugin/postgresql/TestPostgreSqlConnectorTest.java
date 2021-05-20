@@ -14,8 +14,10 @@
 package io.trino.plugin.postgresql;
 
 import com.google.common.collect.ImmutableList;
+import io.airlift.units.Duration;
 import io.trino.Session;
 import io.trino.plugin.jdbc.BaseJdbcConnectorTest;
+import io.trino.plugin.jdbc.RemoteDatabaseEvent;
 import io.trino.sql.planner.plan.AggregationNode;
 import io.trino.sql.planner.plan.ExchangeNode;
 import io.trino.sql.planner.plan.FilterNode;
@@ -29,6 +31,7 @@ import io.trino.testing.TestingConnectorBehavior;
 import io.trino.testing.sql.JdbcSqlExecutor;
 import io.trino.testing.sql.SqlExecutor;
 import io.trino.testing.sql.TestTable;
+import io.trino.testing.sql.TestView;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -46,7 +49,9 @@ import static io.trino.plugin.postgresql.PostgreSqlQueryRunner.createPostgreSqlQ
 import static io.trino.sql.planner.assertions.PlanMatchPattern.anyTree;
 import static io.trino.sql.planner.assertions.PlanMatchPattern.node;
 import static io.trino.testing.sql.TestTable.randomTableSuffix;
+import static java.lang.Math.round;
 import static java.lang.String.format;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.IntStream.range;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -97,6 +102,9 @@ public class TestPostgreSqlConnectorTest
 
             case SUPPORTS_RENAME_TABLE_ACROSS_SCHEMAS:
                 return false;
+
+            case SUPPORTS_CANCELLATION:
+                return true;
 
             default:
                 return super.hasBehavior(connectorBehavior);
@@ -445,6 +453,7 @@ public class TestPostgreSqlConnectorTest
         assertThat(query("SELECT count(nationkey) FROM nation")).isFullyPushedDown();
         assertThat(query("SELECT count(1) FROM nation")).isFullyPushedDown();
         assertThat(query("SELECT count() FROM nation")).isFullyPushedDown();
+        assertThat(query("SELECT regionkey, count(1) FROM nation GROUP BY regionkey")).isFullyPushedDown();
 
         // GROUP BY
         assertThat(query("SELECT regionkey, min(nationkey) FROM nation GROUP BY regionkey")).isFullyPushedDown();
@@ -741,40 +750,6 @@ public class TestPostgreSqlConnectorTest
         }
     }
 
-    @Test
-    public void testLimitPushdown()
-    {
-        assertThat(query("SELECT name FROM nation LIMIT 30")).isFullyPushedDown(); // Use high limit for result determinism
-
-        // with filter over numeric column
-        assertThat(query("SELECT name FROM nation WHERE regionkey = 3 LIMIT 5")).isFullyPushedDown();
-
-        // with filter over varchar column
-        assertThat(query("SELECT name FROM nation WHERE name < 'EEE' LIMIT 5")).isNotFullyPushedDown(FilterNode.class);
-
-        // with aggregation
-        assertThat(query("SELECT max(regionkey) FROM nation LIMIT 5")).isFullyPushedDown(); // global aggregation, LIMIT removed
-        assertThat(query("SELECT regionkey, max(name) FROM nation GROUP BY regionkey LIMIT 5")).isFullyPushedDown();
-        assertThat(query("SELECT DISTINCT regionkey FROM nation LIMIT 5")).isFullyPushedDown();
-
-        // with filter and aggregation
-        assertThat(query("SELECT regionkey, count(*) FROM nation WHERE nationkey < 5 GROUP BY regionkey LIMIT 3")).isFullyPushedDown();
-        assertThat(query("SELECT regionkey, count(*) FROM nation WHERE name < 'EGYPT' GROUP BY regionkey LIMIT 3")).isNotFullyPushedDown(FilterNode.class);
-
-        // with TopN over numeric column
-        assertThat(query("SELECT * FROM (SELECT regionkey FROM nation ORDER BY nationkey ASC LIMIT 10) LIMIT 5")).isFullyPushedDown();
-        // with TopN over varchar column
-        assertThat(query("SELECT * FROM (SELECT regionkey FROM nation ORDER BY name ASC LIMIT 10) LIMIT 5")).isFullyPushedDown();
-
-        // LIMIT with JOIN
-        assertThat(query(joinPushdownEnabled(getSession()), "" +
-                "SELECT n.name, r.name " +
-                "FROM nation n " +
-                "LEFT JOIN region r USING (regionkey) " +
-                "LIMIT 30"))
-                .isFullyPushedDown();
-    }
-
     /**
      * This test helps to tune TupleDomain simplification threshold.
      */
@@ -880,5 +855,18 @@ public class TestPostgreSqlConnectorTest
                 Statement statement = connection.createStatement()) {
             statement.execute(sql);
         }
+    }
+
+    @Override
+    protected List<RemoteDatabaseEvent> getRemoteDatabaseEvents()
+    {
+        return postgreSqlServer.getRemoteDatabaseEvents();
+    }
+
+    @Override
+    protected TestView createSleepingView(Duration minimalQueryDuration)
+    {
+        long secondsToSleep = round(minimalQueryDuration.convertTo(SECONDS).getValue() + 1);
+        return new TestView(onRemoteDatabase(), format("SELECT 1 FROM pg_sleep(%d)", secondsToSleep));
     }
 }

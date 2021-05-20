@@ -39,6 +39,7 @@ import io.trino.plugin.jdbc.expression.ImplementStddevSamp;
 import io.trino.plugin.jdbc.expression.ImplementSum;
 import io.trino.plugin.jdbc.expression.ImplementVariancePop;
 import io.trino.plugin.jdbc.expression.ImplementVarianceSamp;
+import io.trino.plugin.jdbc.mapping.IdentifierMapping;
 import io.trino.spi.TrinoException;
 import io.trino.spi.connector.AggregateFunction;
 import io.trino.spi.connector.ColumnHandle;
@@ -126,7 +127,6 @@ import static io.trino.spi.type.VarbinaryType.VARBINARY;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.lang.String.format;
-import static java.util.Locale.ENGLISH;
 import static java.util.stream.Collectors.joining;
 
 public class MySqlClient
@@ -136,9 +136,9 @@ public class MySqlClient
     private final AggregateFunctionRewriter aggregateFunctionRewriter;
 
     @Inject
-    public MySqlClient(BaseJdbcConfig config, ConnectionFactory connectionFactory, TypeManager typeManager)
+    public MySqlClient(BaseJdbcConfig config, ConnectionFactory connectionFactory, TypeManager typeManager, IdentifierMapping identifierMapping)
     {
-        super(config, "`", connectionFactory);
+        super(config, "`", connectionFactory, identifierMapping);
         this.jsonType = typeManager.getType(new TypeSignature(StandardTypes.JSON));
 
         JdbcTypeHandle bigintTypeHandle = new JdbcTypeHandle(Types.BIGINT, Optional.of("bigint"), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
@@ -172,7 +172,7 @@ public class MySqlClient
     }
 
     @Override
-    protected Collection<String> listSchemas(Connection connection)
+    public Collection<String> listSchemas(Connection connection)
     {
         // for MySQL, we need to list catalogs instead of schemas
         try (ResultSet resultSet = connection.getMetaData().getCatalogs()) {
@@ -194,7 +194,8 @@ public class MySqlClient
     @Override
     protected boolean filterSchema(String schemaName)
     {
-        if (schemaName.equalsIgnoreCase("mysql")) {
+        if (schemaName.equalsIgnoreCase("mysql")
+                || schemaName.equalsIgnoreCase("sys")) {
             return false;
         }
         return super.filterSchema(schemaName);
@@ -221,7 +222,7 @@ public class MySqlClient
     }
 
     @Override
-    protected ResultSet getTables(Connection connection, Optional<String> schemaName, Optional<String> tableName)
+    public ResultSet getTables(Connection connection, Optional<String> schemaName, Optional<String> tableName)
             throws SQLException
     {
         // MySQL maps their "database" to SQL catalogs and does not have schemas
@@ -317,7 +318,7 @@ public class MySqlClient
         }
 
         // TODO add explicit mappings
-        return legacyToPrestoType(session, connection, typeHandle);
+        return legacyColumnMapping(session, connection, typeHandle);
     }
 
     @Override
@@ -414,15 +415,12 @@ public class MySqlClient
     public void renameColumn(ConnectorSession session, JdbcTableHandle handle, JdbcColumnHandle jdbcColumn, String newColumnName)
     {
         try (Connection connection = connectionFactory.openConnection(session)) {
-            DatabaseMetaData metadata = connection.getMetaData();
-            if (metadata.storesUpperCaseIdentifiers()) {
-                newColumnName = newColumnName.toUpperCase(ENGLISH);
-            }
+            String newRemoteColumnName = getIdentifierMapping().toRemoteColumnName(connection, newColumnName);
             String sql = format(
                     "ALTER TABLE %s RENAME COLUMN %s TO %s",
                     quoted(handle.getCatalogName(), handle.getSchemaName(), handle.getTableName()),
                     quoted(jdbcColumn.getColumnName()),
-                    quoted(newColumnName));
+                    quoted(newRemoteColumnName));
             execute(connection, sql);
         }
         catch (SQLException e) {

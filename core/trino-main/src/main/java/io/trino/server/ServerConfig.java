@@ -20,6 +20,9 @@ import io.airlift.units.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import javax.validation.constraints.NotNull;
+
+import java.util.Optional;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 
@@ -99,6 +102,19 @@ public class ServerConfig
     public ServerConfig setQueryResultsCompressionEnabled(boolean queryResultsCompressionEnabled)
     {
         this.queryResultsCompressionEnabled = queryResultsCompressionEnabled;
+        return this;
+    }
+
+    @NotNull
+    public Optional<String> getQueryInfoUrlTemplate()
+    {
+        return queryInfoUrlTemplate;
+    }
+
+    @Config("query.info-url-template")
+    public ServerConfig setQueryInfoUrlTemplate(String queryInfoUrlTemplate)
+    {
+        this.queryInfoUrlTemplate = Optional.ofNullable(queryInfoUrlTemplate);
         return this;
     }
 }

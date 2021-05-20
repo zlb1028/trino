@@ -63,6 +63,7 @@ public final class SystemSessionProperties
     public static final String QUERY_MAX_MEMORY = "query_max_memory";
     public static final String QUERY_MAX_TOTAL_MEMORY = "query_max_total_memory";
     public static final String QUERY_MAX_EXECUTION_TIME = "query_max_execution_time";
+    public static final String QUERY_MAX_PLANNING_TIME = "query_max_planning_time";
     public static final String QUERY_MAX_RUN_TIME = "query_max_run_time";
     public static final String RESOURCE_OVERCOMMIT = "resource_overcommit";
     public static final String QUERY_MAX_CPU_TIME = "query_max_cpu_time";
@@ -134,6 +135,7 @@ public final class SystemSessionProperties
     public static final String OMIT_DATETIME_TYPE_PRECISION = "omit_datetime_type_precision";
     public static final String USE_LEGACY_WINDOW_FILTER_PUSHDOWN = "use_legacy_window_filter_pushdown";
     public static final String MAX_UNACKNOWLEDGED_SPLITS_PER_TASK = "max_unacknowledged_splits_per_task";
+    public static final String MERGE_PROJECT_WITH_VALUES = "merge_project_with_values";
 
     private final List<PropertyMetadata<?>> sessionProperties;
 
@@ -260,6 +262,11 @@ public final class SystemSessionProperties
                         QUERY_MAX_EXECUTION_TIME,
                         "Maximum execution time of a query",
                         queryManagerConfig.getQueryMaxExecutionTime(),
+                        false),
+                durationProperty(
+                        QUERY_MAX_PLANNING_TIME,
+                        "Maximum planning time of a query",
+                        queryManagerConfig.getQueryMaxPlanningTime(),
                         false),
                 durationProperty(
                         QUERY_MAX_CPU_TIME,
@@ -609,7 +616,12 @@ public final class SystemSessionProperties
                         nodeSchedulerConfig.getMaxUnacknowledgedSplitsPerTask(),
                         false,
                         value -> validateIntegerValue(value, MAX_UNACKNOWLEDGED_SPLITS_PER_TASK, 1, false),
-                        object -> object));
+                        object -> object),
+                booleanProperty(
+                        MERGE_PROJECT_WITH_VALUES,
+                        "Inline project expressions into values",
+                        featuresConfig.isMergeProjectWithValues(),
+                        false));
     }
 
     public List<PropertyMetadata<?>> getSessionProperties()
@@ -735,6 +747,11 @@ public final class SystemSessionProperties
     public static Duration getQueryMaxExecutionTime(Session session)
     {
         return session.getSystemProperty(QUERY_MAX_EXECUTION_TIME, Duration.class);
+    }
+
+    public static Duration getQueryMaxPlanningTime(Session session)
+    {
+        return session.getSystemProperty(QUERY_MAX_PLANNING_TIME, Duration.class);
     }
 
     public static boolean resourceOvercommit(Session session)
@@ -1085,5 +1102,10 @@ public final class SystemSessionProperties
     public static int getMaxUnacknowledgedSplitsPerTask(Session session)
     {
         return session.getSystemProperty(MAX_UNACKNOWLEDGED_SPLITS_PER_TASK, Integer.class);
+    }
+
+    public static boolean isMergeProjectWithValues(Session session)
+    {
+        return session.getSystemProperty(MERGE_PROJECT_WITH_VALUES, Boolean.class);
     }
 }
